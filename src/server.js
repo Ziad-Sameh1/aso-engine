@@ -26,7 +26,7 @@ app.get("/", async function (request, reply) {
 
 // Health check route
 app.get("/api/health", async function (request, reply) {
-  const health = { status: "ok", timestamp: new Date().toISOString() };
+  const health = { status: "ok", timestamp: new Date().toISOString(), environment: config.nodeEnv };
 
   // Test Postgres
   try {
