@@ -20,6 +20,10 @@ await app.register(rateLimit, { max: 100, timeWindow: "1 minute" });
 await app.register(postgresPlugin);
 await app.register(redisPlugin);
 
+app.get("/", async function (request, reply) {
+  return { message: "Welcome to the ASO Engine :D" };
+});
+
 // Health check route
 app.get("/api/health", async function (request, reply) {
   const health = { status: "ok", timestamp: new Date().toISOString() };
