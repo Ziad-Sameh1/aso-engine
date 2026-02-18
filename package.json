@@ -1,0 +1,21 @@
+{
+  "name": "aso-engine",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
+  },
+  "dependencies": {
+    "@fastify/cors": "^11.2.0",
+    "@fastify/rate-limit": "^10.3.0",
+    "@fastify/swagger": "^9.7.0",
+    "@fastify/swagger-ui": "^5.2.5",
+    "bullmq": "^5.69.3",
+    "dotenv": "^17.3.1",
+    "fastify": "^5.7.4",
+    "ioredis": "^5.9.3",
+    "node-cron": "^4.2.1",
+    "nodemon": "^3.1.11",
+    "pg": "^8.18.0"
+  }
+}
