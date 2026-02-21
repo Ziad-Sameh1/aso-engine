@@ -1,0 +1,368 @@
+/**
+ * All PostgreSQL persistence and query logic for the ASO engine.
+ * Functions receive `pg` (fastify.pg pool) as first argument.
+ */
+
+// ── Upserts ──────────────────────────────────────────────────────────────────
+
+export async function upsertStorefront(pg, code) {
+  const { rows } = await pg.query(
+    `INSERT INTO storefronts (code, country)
+     VALUES ($1, $1)
+     ON CONFLICT (code) DO UPDATE SET code = EXCLUDED.code
+     RETURNING id, code, country`,
+    [code.toLowerCase()]
+  );
+  return rows[0];
+}
+
+export async function upsertWord(pg, text) {
+  const normText = text.toLowerCase().trim();
+  const { rows } = await pg.query(
+    `INSERT INTO words (text, norm_text)
+     VALUES ($1, $2)
+     ON CONFLICT (norm_text) DO UPDATE SET text = EXCLUDED.text
+     RETURNING id, text, norm_text`,
+    [text, normText]
+  );
+  return rows[0];
+}
+
+export async function upsertKeyword(pg, wordId, storefrontId, platform) {
+  const { rows } = await pg.query(
+    `INSERT INTO keywords (word_id, storefront_id, platform)
+     VALUES ($1, $2, $3)
+     ON CONFLICT (word_id, storefront_id, platform) DO UPDATE SET word_id = EXCLUDED.word_id
+     RETURNING id`,
+    [wordId, storefrontId, platform]
+  );
+  return rows[0];
+}
+
+/**
+ * Batch upsert apps in a single round-trip using unnest.
+ * Returns Map<appleId, dbId>.
+ */
+export async function upsertApps(pg, appDataArray) {
+  const appIdMap = new Map();
+  if (!appDataArray.length) return appIdMap;
+
+  const appleIds   = appDataArray.map((a) => a.appleId);
+  const bundleIds  = appDataArray.map((a) => a.bundleId  || null);
+  const names      = appDataArray.map((a) => a.name      || null);
+  const developers = appDataArray.map((a) => a.developer || null);
+  const prices     = appDataArray.map((a) => a.price     || null);
+  const genres     = appDataArray.map((a) => a.genre     || null);
+
+  const { rows } = await pg.query(
+    `INSERT INTO apps (apple_id, bundle_id, name, developer, price, genre, updated_at)
+     SELECT unnest($1::text[]), unnest($2::text[]), unnest($3::text[]),
+            unnest($4::text[]), unnest($5::text[]), unnest($6::text[]), NOW()
+     ON CONFLICT (apple_id) DO UPDATE SET
+       bundle_id  = COALESCE(NULLIF(EXCLUDED.bundle_id, ''),  apps.bundle_id),
+       name       = COALESCE(NULLIF(EXCLUDED.name, ''),       apps.name),
+       developer  = COALESCE(NULLIF(EXCLUDED.developer, ''),  apps.developer),
+       price      = COALESCE(NULLIF(EXCLUDED.price, ''),      apps.price),
+       genre      = COALESCE(NULLIF(EXCLUDED.genre, ''),      apps.genre),
+       updated_at = NOW()
+     RETURNING id, apple_id`,
+    [appleIds, bundleIds, names, developers, prices, genres]
+  );
+
+  for (const row of rows) appIdMap.set(row.apple_id, row.id);
+  return appIdMap;
+}
+
+/**
+ * Upsert a single app by apple_id. Returns { id, apple_id }.
+ */
+export async function upsertApp(pg, { appleId, bundleId, name, developer, price, genre }) {
+  const { rows } = await pg.query(
+    `INSERT INTO apps (apple_id, bundle_id, name, developer, price, genre, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, NOW())
+     ON CONFLICT (apple_id) DO UPDATE SET
+       bundle_id  = COALESCE(NULLIF(EXCLUDED.bundle_id, ''), apps.bundle_id),
+       name       = COALESCE(NULLIF(EXCLUDED.name, ''),      apps.name),
+       developer  = COALESCE(NULLIF(EXCLUDED.developer, ''), apps.developer),
+       price      = COALESCE(NULLIF(EXCLUDED.price, ''),     apps.price),
+       genre      = COALESCE(NULLIF(EXCLUDED.genre, ''),     apps.genre),
+       updated_at = NOW()
+     RETURNING id, apple_id`,
+    [appleId, bundleId || null, name || null, developer || null, price || null, genre || null]
+  );
+  return rows[0];
+}
+
+/**
+ * Insert a single app rating row (no snapshot, e.g. from direct iTunes Lookup).
+ */
+export async function insertSingleAppRating(pg, appDbId, rating, ratingsCount, store = "us", platform = "iphone") {
+  if (rating == null) return;
+  await pg.query(
+    `INSERT INTO app_ratings (app_id, rating, ratings_count, store, platform) VALUES ($1, $2, $3, $4, $5)`,
+    [appDbId, rating, ratingsCount ?? null, store, platform]
+  );
+}
+
+export async function insertSearchSnapshot(pg, keywordId, totalResults, rawResponse) {
+  const { rows } = await pg.query(
+    `INSERT INTO search_snapshots (keyword_id, total_results, raw_response)
+     VALUES ($1, $2, $3)
+     RETURNING id, snapshot_at`,
+    [keywordId, totalResults, JSON.stringify(rawResponse)]
+  );
+  return rows[0];
+}
+
+/**
+ * Batch insert app rankings using unnest for a single-query bulk insert.
+ * rankings = [{ appDbId, rank }]
+ */
+export async function insertAppRankings(pg, keywordId, snapshotId, rankings) {
+  if (!rankings.length) return;
+  const appIds = rankings.map((r) => r.appDbId);
+  const ranks = rankings.map((r) => r.rank);
+  await pg.query(
+    `INSERT INTO app_rankings (keyword_id, app_id, rank, search_snapshot_id)
+     SELECT $1, unnest($2::bigint[]), unnest($3::smallint[]), $4`,
+    [keywordId, appIds, ranks, snapshotId]
+  );
+}
+
+/**
+ * Batch insert app ratings using unnest, skipping entries with no rating.
+ * ratings = [{ appDbId, rating, ratingsCount }]
+ */
+export async function insertAppRatings(pg, snapshotId, ratings, store = "us", platform = "iphone") {
+  const valid = ratings.filter((r) => r.rating != null);
+  if (!valid.length) return;
+  const appIds = valid.map((r) => r.appDbId);
+  const ratingVals = valid.map((r) => r.rating);
+  const counts = valid.map((r) => r.ratingsCount ?? null);
+  await pg.query(
+    `INSERT INTO app_ratings (app_id, rating, ratings_count, search_snapshot_id, store, platform)
+     SELECT unnest($1::bigint[]), unnest($2::numeric[]), unnest($3::int[]), $4, $5, $6`,
+    [appIds, ratingVals, counts, snapshotId, store, platform]
+  );
+}
+
+export async function insertPopularity(pg, keywordId, popularity) {
+  await pg.query(
+    `INSERT INTO keyword_popularity (keyword_id, popularity) VALUES ($1, $2)`,
+    [keywordId, popularity]
+  );
+}
+
+export async function insertCompetitiveness(pg, keywordId, competitiveness) {
+  await pg.query(
+    `INSERT INTO keyword_competitiveness (keyword_id, competitiveness) VALUES ($1, $2)`,
+    [keywordId, competitiveness]
+  );
+}
+
+// ── Queries ──────────────────────────────────────────────────────────────────
+
+/**
+ * Resolve keyword row from normalized text + store code + platform.
+ */
+export async function resolveKeyword(pg, normText, storeCode, platform) {
+  const { rows } = await pg.query(
+    `SELECT k.id
+     FROM keywords k
+     JOIN words w ON w.id = k.word_id
+     JOIN storefronts s ON s.id = k.storefront_id
+     WHERE w.norm_text = $1 AND s.code = $2 AND k.platform = $3`,
+    [normText, storeCode.toLowerCase(), platform]
+  );
+  return rows[0] || null;
+}
+
+export async function getAppCurrentRank(pg, appleId, keywordId) {
+  const { rows } = await pg.query(
+    `SELECT ar.rank, ar.ranked_at
+     FROM app_rankings ar
+     JOIN apps a ON a.id = ar.app_id
+     WHERE a.apple_id = $1 AND ar.keyword_id = $2
+     ORDER BY ar.ranked_at DESC
+     LIMIT 1`,
+    [appleId, keywordId]
+  );
+  return rows[0] || null;
+}
+
+export async function getAppRankHistory(pg, appleId, keywordId, since) {
+  const { rows } = await pg.query(
+    `SELECT ar.rank, ar.ranked_at
+     FROM app_rankings ar
+     JOIN apps a ON a.id = ar.app_id
+     WHERE a.apple_id = $1 AND ar.keyword_id = $2 AND ar.ranked_at >= $3
+     ORDER BY ar.ranked_at ASC`,
+    [appleId, keywordId, since]
+  );
+  return rows;
+}
+
+export async function getAppCurrentRating(pg, appleId, store = "us", platform = "iphone") {
+  const { rows } = await pg.query(
+    `SELECT r.rating, r.ratings_count, r.recorded_at
+     FROM app_ratings r
+     JOIN apps a ON a.id = r.app_id
+     WHERE a.apple_id = $1 AND r.store = $2 AND r.platform = $3
+     ORDER BY r.recorded_at DESC
+     LIMIT 1`,
+    [appleId, store, platform]
+  );
+  return rows[0] || null;
+}
+
+export async function getAppRatingHistory(pg, appleId, store = "us", platform = "iphone", since) {
+  const { rows } = await pg.query(
+    `SELECT r.rating, r.ratings_count, r.recorded_at
+     FROM app_ratings r
+     JOIN apps a ON a.id = r.app_id
+     WHERE a.apple_id = $1 AND r.store = $2 AND r.platform = $3 AND r.recorded_at >= $4
+     ORDER BY r.recorded_at ASC`,
+    [appleId, store, platform, since]
+  );
+  return rows;
+}
+
+export async function getKeywordCurrentPopularity(pg, keywordId) {
+  const { rows } = await pg.query(
+    `SELECT popularity, fetched_at
+     FROM keyword_popularity
+     WHERE keyword_id = $1
+     ORDER BY fetched_at DESC
+     LIMIT 1`,
+    [keywordId]
+  );
+  return rows[0] || null;
+}
+
+export async function getKeywordPopularityHistory(pg, keywordId, since) {
+  const { rows } = await pg.query(
+    `SELECT popularity, fetched_at
+     FROM keyword_popularity
+     WHERE keyword_id = $1 AND fetched_at >= $2
+     ORDER BY fetched_at ASC`,
+    [keywordId, since]
+  );
+  return rows;
+}
+
+export async function getKeywordCurrentCompetitiveness(pg, keywordId) {
+  const { rows } = await pg.query(
+    `SELECT competitiveness, fetched_at
+     FROM keyword_competitiveness
+     WHERE keyword_id = $1
+     ORDER BY fetched_at DESC
+     LIMIT 1`,
+    [keywordId]
+  );
+  return rows[0] || null;
+}
+
+export async function getKeywordCompetitivenessHistory(pg, keywordId, since) {
+  const { rows } = await pg.query(
+    `SELECT competitiveness, fetched_at
+     FROM keyword_competitiveness
+     WHERE keyword_id = $1 AND fetched_at >= $2
+     ORDER BY fetched_at ASC`,
+    [keywordId, since]
+  );
+  return rows;
+}
+
+// ── Tracking CRUD ────────────────────────────────────────────────────────────
+
+export async function setKeywordTracking(pg, keywordId, enabled) {
+  const { rows } = await pg.query(
+    `UPDATE keywords SET tracking_enabled = $2 WHERE id = $1
+     RETURNING id, tracking_enabled`,
+    [keywordId, enabled]
+  );
+  return rows[0] || null;
+}
+
+export async function setAppTracking(pg, appleId, enabled) {
+  const { rows } = await pg.query(
+    `UPDATE apps SET tracking_enabled = $2, updated_at = NOW() WHERE apple_id = $1
+     RETURNING id, apple_id, name, tracking_enabled`,
+    [appleId, enabled]
+  );
+  return rows[0] || null;
+}
+
+export async function getTrackedKeywords(pg) {
+  const { rows } = await pg.query(
+    `SELECT k.id, w.text AS keyword, s.code AS store, k.platform,
+            k.query_count, k.last_queried_at, k.created_at
+     FROM keywords k
+     JOIN words w ON w.id = k.word_id
+     JOIN storefronts s ON s.id = k.storefront_id
+     WHERE k.tracking_enabled = TRUE
+     ORDER BY k.created_at DESC`
+  );
+  return rows;
+}
+
+export async function getTrackedApps(pg) {
+  const { rows } = await pg.query(
+    `SELECT id, apple_id, bundle_id, name, developer, price, genre, created_at, updated_at
+     FROM apps
+     WHERE tracking_enabled = TRUE
+     ORDER BY updated_at DESC`
+  );
+  return rows;
+}
+
+export async function getAppByAppleId(pg, appleId) {
+  const { rows } = await pg.query(
+    `SELECT id, apple_id, bundle_id, name, developer, price, genre, tracking_enabled
+     FROM apps WHERE apple_id = $1`,
+    [appleId]
+  );
+  return rows[0] || null;
+}
+
+export async function incrementKeywordDemand(pg, keywordId) {
+  await pg.query(
+    `UPDATE keywords
+     SET query_count = query_count + 1, last_queried_at = NOW()
+     WHERE id = $1`,
+    [keywordId]
+  );
+}
+
+export async function getTopDemandKeywords(pg, limit = 50) {
+  const { rows } = await pg.query(
+    `SELECT k.id, w.text AS keyword, s.code AS store, k.platform, k.query_count
+     FROM keywords k
+     JOIN words w ON w.id = k.word_id
+     JOIN storefronts s ON s.id = k.storefront_id
+     WHERE k.tracking_enabled = TRUE
+     ORDER BY k.query_count DESC
+     LIMIT $1`,
+    [limit]
+  );
+  return rows;
+}
+
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+const PERIOD_DAYS = {
+  "7d": 7,
+  "2w": 14,
+  "1m": 30,
+  "3m": 90,
+  "6m": 180,
+  "1y": 365,
+  "2y": 730,
+};
+
+export function periodToDate(period) {
+  const days = PERIOD_DAYS[period] ?? 7;
+  return new Date(Date.now() - days * 86_400_000);
+}
+
+export const VALID_PERIODS = Object.keys(PERIOD_DAYS);
