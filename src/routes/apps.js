@@ -186,10 +186,6 @@ export async function appsRoutes(fastify) {
     },
     async (request, reply) => {
       const { appleIds, store, platform = "iphone" } = request.body;
-      const cacheKey = `summary:${store}:${platform}:${appleIds.sort().join(",")}`;
-
-      const cached = await cache.get(cacheKey);
-      if (cached) return { ...cached, cached: true };
 
       const apps = await getAppsByAppleIds(fastify.pg, appleIds);
       if (!apps.length)
@@ -197,28 +193,32 @@ export async function appsRoutes(fastify) {
           .code(400)
           .send({ error: "No apps found for the given apple IDs." });
 
-      const appIdList = apps.map((a) => a.id);
+      const appIdList = apps.map((a) => Number(a.id));
       const [ratingsRows, rankingsRows] = await Promise.all([
         getLatestRatingsBulk(fastify.pg, appIdList, store, platform),
         getLatestRankingsByStoreBulk(fastify.pg, appIdList, store, platform),
       ]);
 
-      const ratingByAppId = new Map(ratingsRows.map((r) => [r.app_id, r]));
+      const ratingByAppId = new Map(
+        ratingsRows.map((r) => [Number(r.app_id), r])
+      );
       const rankingsByAppId = new Map();
       for (const row of rankingsRows) {
-        const list = rankingsByAppId.get(row.app_id) ?? [];
+        const id = Number(row.app_id);
+        const list = rankingsByAppId.get(id) ?? [];
         list.push({
           keyword: row.keyword,
           rank: row.current_rank,
           previousRank: row.previous_rank ?? null,
           rankedAt: row.current_ranked_at,
         });
-        rankingsByAppId.set(row.app_id, list);
+        rankingsByAppId.set(id, list);
       }
 
       const results = apps.map((app) => {
-        const rating = ratingByAppId.get(app.id);
-        const keywords = rankingsByAppId.get(app.id) ?? [];
+        const appId = Number(app.id);
+        const rating = ratingByAppId.get(appId);
+        const keywords = rankingsByAppId.get(appId) ?? [];
         return {
           appleId: app.apple_id,
           store,
@@ -235,9 +235,7 @@ export async function appsRoutes(fastify) {
         };
       });
 
-      const result = { total: results.length, store, platform, apps: results };
-      await cache.set(cacheKey, result, config.cacheTtlRank);
-      return { ...result, cached: false };
+      return { total: results.length, store, platform, apps: results };
     }
   );
 
