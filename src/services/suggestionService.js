@@ -1,16 +1,16 @@
 /**
  * Keyword suggestion service.
  *
- * Stage 1 — Gemini Flash 2.5 generates 50 keyword candidates from app metadata (cached 24h)
- * Stage 2 — getSearchRankings (fast ~300ms, no DB) filters to keywords where app ranks ≤ 50
- * Stage 3 — runSearch for top 20 in parallel: populates DB + calculates pop/comp as side effect
- * Stage 4 — Read metrics from DB (rank, popularity, competitiveness) — no extra API calls
+ * Stage 1 — Gemini Flash 2.5 generates exactly 20 structured keywords from app metadata (cached 24h)
+ *           Order: (1) app unique brand name, (2) individual app features, (3) long-tail = name + feature
+ * Stage 2 — runSearch for all 20 in parallel: populates DB + calculates pop/comp as side effect
+ * Stage 3 — Read metrics from DB (rank up to 200, popularity, competitiveness) — no extra API calls
  */
 
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { CacheService } from "./cache.js";
 import { config } from "../config/index.js";
-import { getSearchRankings, fetchAppMetadata } from "./appstore.js";
+import { fetchAppMetadata } from "./appstore.js";
 import { runSearch } from "./searchService.js";
 import {
   getAppByAppleId,
@@ -20,12 +20,10 @@ import {
   getKeywordCurrentCompetitiveness,
 } from "./db.js";
 
-const STAGE2_CONCURRENT = 10;
-const MAX_RESULTS = 20;
-const MAX_RANK = 50;
+const MAX_RANK = 200;
 
 /**
- * Call Gemini Flash 2.5 to generate 50 keyword candidates. Cached 24h.
+ * Call Gemini Flash 2.5 to generate 20 structured keywords. Cached 24h.
  */
 async function generateKeywordSuggestions(appMeta, redis) {
   const cache = new CacheService(redis);
@@ -46,16 +44,18 @@ async function generateKeywordSuggestions(appMeta, redis) {
 - Price: ${appMeta.price}
 - Bundle ID: ${appMeta.bundleId}
 
-Generate exactly 50 search keywords that real users would type to find this app.
+Generate exactly 20 search keywords in this exact order:
+1. The app's unique brand/product name (first keyword, always)
+2. Individual app feature keywords — one keyword per distinct feature (e.g., "face filter", "rain forecast", "budget tracker")
+3. Long-tail keywords — each combining the unique brand name with one of the app's features (e.g., "appname feature", "brandname usecase")
+
+Fill all 20 slots following this order. Use as many feature keywords as needed, then fill remaining slots with brand+feature long-tail combinations.
 
 Rules:
-- First keyword must be the app's brand name
-- Include generic category keywords (e.g., "photo editor", "weather app") — 1-2 words
-- Include specific feature keywords (e.g., "face filter", "rain forecast") — 1-3 words
-- Include 2-3 competitor app names that target the same audience
-- Include long-tail keywords combining the app name or unique feature with a use case (e.g., "halo journal anxiety", "collagekit instagram story", "daily self care tracker") — these help new apps get discovered before they rank for competitive terms
 - No duplicates
-- Return ONLY a JSON array of strings, nothing else. No markdown, no explanation.`;
+- All lowercase
+- No competitor names
+- Return ONLY a JSON array of exactly 20 strings, nothing else. No markdown, no explanation.`;
 
   const result = await model.generateContent(prompt);
   const text = result.response.text().trim();
@@ -103,55 +103,28 @@ export async function getKeywordSuggestions(pg, redis, appleId, { store = "us", 
   const candidates = await generateKeywordSuggestions(appMeta, redis);
   timings.stage1_gemini_ms = Date.now() - t;
 
-  // ── Stage 2: Fast rank filter — getSearchRankings only (no DB writes) ────
-  // 10 concurrent, 150ms delay between batches
-  t = Date.now();
-  const ranked = [];
-
-  for (let i = 0; i < candidates.length; i += STAGE2_CONCURRENT) {
-    const batch = candidates.slice(i, i + STAGE2_CONCURRENT);
-
-    const batchResults = await Promise.all(
-      batch.map(async (keyword) => {
-        try {
-          const results = await getSearchRankings({ keyword, country: store, platform, limit: 50 });
-          const hit = results.find((r) => r.id === appleId);
-          if (!hit || hit.rank > MAX_RANK) return null;
-          return { keyword, rank: hit.rank };
-        } catch {
-          return null;
-        }
-      })
-    );
-
-    ranked.push(...batchResults.filter(Boolean));
-  }
-
-  const top20 = ranked.sort((a, b) => a.rank - b.rank).slice(0, MAX_RESULTS);
-  timings.stage2_filter_ms = Date.now() - t;
-
-  // ── Stage 3: runSearch for top 20 in parallel — populates DB ─────────────
+  // ── Stage 2: runSearch for all 20 keywords in parallel — populates DB ────
   // runSearch calculates + stores popularity and competitiveness as a side effect
   t = Date.now();
 
   await Promise.all(
-    top20.map(({ keyword }) =>
-      runSearch(pg, redis, { keyword, store, platform, limit: 100 }).catch(() => {})
+    candidates.map((keyword) =>
+      runSearch(pg, redis, { keyword, store, platform, limit: MAX_RANK }).catch(() => {})
     )
   );
 
-  timings.stage3_persist_ms = Date.now() - t;
+  timings.stage2_persist_ms = Date.now() - t;
 
-  // ── Stage 4: Read metrics from DB (no extra API calls) ───────────────────
-  // popularity + competitiveness are already in DB from stage 3's runSearch
+  // ── Stage 3: Read metrics from DB (rank up to 200, no extra API calls) ───
+  // popularity + competitiveness are already in DB from stage 2's runSearch
   t = Date.now();
 
   const results = await Promise.all(
-    top20.map(async ({ keyword, rank: filterRank }) => {
+    candidates.map(async (keyword) => {
       try {
         const normKeyword = keyword.toLowerCase().trim();
         const kw = await resolveKeyword(pg, normKeyword, store, platform);
-        if (!kw) return { keyword, rank: filterRank, error: "Could not resolve keyword." };
+        if (!kw) return { keyword, rank: null, error: "Could not resolve keyword." };
 
         const [rankRow, popularityRow, competitivenessRow] = await Promise.all([
           getAppCurrentRank(pg, appleId, kw.id),
@@ -161,17 +134,17 @@ export async function getKeywordSuggestions(pg, redis, appleId, { store = "us", 
 
         return {
           keyword,
-          rank:            rankRow?.rank ?? filterRank,
+          rank:            rankRow?.rank ?? null,
           popularity:      popularityRow?.popularity ?? null,
           competitiveness: competitivenessRow?.competitiveness ?? null,
         };
       } catch (err) {
-        return { keyword, rank: filterRank, error: err.message };
+        return { keyword, rank: null, error: err.message };
       }
     })
   );
 
-  timings.stage4_enrich_ms = Date.now() - t;
+  timings.stage3_enrich_ms = Date.now() - t;
 
   return {
     app: {
@@ -182,7 +155,6 @@ export async function getKeywordSuggestions(pg, redis, appleId, { store = "us", 
       price:     appMeta.price,
     },
     totalGenerated: candidates.length,
-    totalRanked:    ranked.length,
     results,
     timings,
   };

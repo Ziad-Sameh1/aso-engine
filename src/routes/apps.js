@@ -590,7 +590,6 @@ export async function appsRoutes(fastify) {
               store: { type: "string" },
               platform: { type: "string" },
               totalGenerated: { type: "number" },
-              totalRanked: { type: "number" },
               cached: { type: "boolean" },
               timings: { type: "object", additionalProperties: true },
               results: {
