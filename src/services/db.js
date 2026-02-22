@@ -47,12 +47,12 @@ export async function upsertApps(pg, appDataArray) {
   const appIdMap = new Map();
   if (!appDataArray.length) return appIdMap;
 
-  const appleIds   = appDataArray.map((a) => a.appleId);
-  const bundleIds  = appDataArray.map((a) => a.bundleId  || null);
-  const names      = appDataArray.map((a) => a.name      || null);
+  const appleIds = appDataArray.map((a) => a.appleId);
+  const bundleIds = appDataArray.map((a) => a.bundleId || null);
+  const names = appDataArray.map((a) => a.name || null);
   const developers = appDataArray.map((a) => a.developer || null);
-  const prices     = appDataArray.map((a) => a.price     || null);
-  const genres     = appDataArray.map((a) => a.genre     || null);
+  const prices = appDataArray.map((a) => a.price || null);
+  const genres = appDataArray.map((a) => a.genre || null);
 
   const { rows } = await pg.query(
     `INSERT INTO apps (apple_id, bundle_id, name, developer, price, genre, updated_at)
@@ -76,7 +76,10 @@ export async function upsertApps(pg, appDataArray) {
 /**
  * Upsert a single app by apple_id. Returns { id, apple_id }.
  */
-export async function upsertApp(pg, { appleId, bundleId, name, developer, price, genre }) {
+export async function upsertApp(
+  pg,
+  { appleId, bundleId, name, developer, price, genre }
+) {
   const { rows } = await pg.query(
     `INSERT INTO apps (apple_id, bundle_id, name, developer, price, genre, updated_at)
      VALUES ($1, $2, $3, $4, $5, $6, NOW())
@@ -88,7 +91,14 @@ export async function upsertApp(pg, { appleId, bundleId, name, developer, price,
        genre      = COALESCE(NULLIF(EXCLUDED.genre, ''),     apps.genre),
        updated_at = NOW()
      RETURNING id, apple_id`,
-    [appleId, bundleId || null, name || null, developer || null, price || null, genre || null]
+    [
+      appleId,
+      bundleId || null,
+      name || null,
+      developer || null,
+      price || null,
+      genre || null,
+    ]
   );
   return rows[0];
 }
@@ -96,7 +106,14 @@ export async function upsertApp(pg, { appleId, bundleId, name, developer, price,
 /**
  * Insert a single app rating row (no snapshot, e.g. from direct iTunes Lookup).
  */
-export async function insertSingleAppRating(pg, appDbId, rating, ratingsCount, store = "us", platform = "iphone") {
+export async function insertSingleAppRating(
+  pg,
+  appDbId,
+  rating,
+  ratingsCount,
+  store = "us",
+  platform = "iphone"
+) {
   if (rating == null) return;
   await pg.query(
     `INSERT INTO app_ratings (app_id, rating, ratings_count, store, platform) VALUES ($1, $2, $3, $4, $5)`,
@@ -104,7 +121,12 @@ export async function insertSingleAppRating(pg, appDbId, rating, ratingsCount, s
   );
 }
 
-export async function insertSearchSnapshot(pg, keywordId, totalResults, rawResponse) {
+export async function insertSearchSnapshot(
+  pg,
+  keywordId,
+  totalResults,
+  rawResponse
+) {
   const { rows } = await pg.query(
     `INSERT INTO search_snapshots (keyword_id, total_results, raw_response)
      VALUES ($1, $2, $3)
@@ -133,7 +155,13 @@ export async function insertAppRankings(pg, keywordId, snapshotId, rankings) {
  * Batch insert app ratings using unnest, skipping entries with no rating.
  * ratings = [{ appDbId, rating, ratingsCount }]
  */
-export async function insertAppRatings(pg, snapshotId, ratings, store = "us", platform = "iphone") {
+export async function insertAppRatings(
+  pg,
+  snapshotId,
+  ratings,
+  store = "us",
+  platform = "iphone"
+) {
   const valid = ratings.filter((r) => r.rating != null);
   if (!valid.length) return;
   const appIds = valid.map((r) => r.appDbId);
@@ -202,7 +230,12 @@ export async function getAppRankHistory(pg, appleId, keywordId, since) {
   return rows;
 }
 
-export async function getAppCurrentRating(pg, appleId, store = "us", platform = "iphone") {
+export async function getAppCurrentRating(
+  pg,
+  appleId,
+  store = "us",
+  platform = "iphone"
+) {
   const { rows } = await pg.query(
     `SELECT r.rating, r.ratings_count, r.recorded_at
      FROM app_ratings r
@@ -215,7 +248,13 @@ export async function getAppCurrentRating(pg, appleId, store = "us", platform = 
   return rows[0] || null;
 }
 
-export async function getAppRatingHistory(pg, appleId, store = "us", platform = "iphone", since) {
+export async function getAppRatingHistory(
+  pg,
+  appleId,
+  store = "us",
+  platform = "iphone",
+  since
+) {
   const { rows } = await pg.query(
     `SELECT r.rating, r.ratings_count, r.recorded_at
      FROM app_ratings r
@@ -323,6 +362,95 @@ export async function getAppByAppleId(pg, appleId) {
     [appleId]
   );
   return rows[0] || null;
+}
+
+/**
+ * Resolve multiple apple_ids to app rows. Returns [{ id, apple_id }].
+ */
+export async function getAppsByAppleIds(pg, appleIds) {
+  if (!appleIds?.length) return [];
+  const { rows } = await pg.query(
+    `SELECT id, apple_id FROM apps WHERE apple_id = ANY($1::text[])`,
+    [appleIds]
+  );
+  return rows;
+}
+
+/**
+ * Latest app_rating per app for given store/platform. Returns [{ app_id, rating, ratings_count, recorded_at }].
+ * Uses LATERAL join for index-friendly per-app lookup instead of DISTINCT ON over the full set.
+ */
+export async function getLatestRatingsBulk(
+  pg,
+  appIds,
+  store = "us",
+  platform = "iphone"
+) {
+  if (!appIds?.length) return [];
+  const { rows } = await pg.query(
+    `SELECT lr.app_id, lr.rating, lr.ratings_count, lr.recorded_at
+     FROM unnest($1::bigint[]) AS a(id)
+     JOIN LATERAL (
+       SELECT r.app_id, r.rating, r.ratings_count, r.recorded_at
+       FROM app_ratings r
+       WHERE r.app_id = a.id AND r.store = $2 AND r.platform = $3
+       ORDER BY r.recorded_at DESC
+       LIMIT 1
+     ) lr ON true`,
+    [appIds, store, platform]
+  );
+  return rows;
+}
+
+/**
+ * Latest app_ranking per (app, keyword) for keywords in the given storefront; includes previous rank.
+ * Returns [{ app_id, keyword, current_rank, current_ranked_at, previous_rank }].
+ *
+ * Uses LATERAL joins to fetch only the 2 most recent rankings per (app, keyword) pair,
+ * avoiding full-table window functions over all historical data.
+ */
+export async function getLatestRankingsByStoreBulk(
+  pg,
+  appIds,
+  storeCode = "us",
+  platform = "iphone"
+) {
+  if (!appIds?.length) return [];
+  const { rows } = await pg.query(
+    `SELECT latest.app_id,
+            w.text AS keyword,
+            latest.rank AS current_rank,
+            latest.ranked_at AS current_ranked_at,
+            prev.rank AS previous_rank
+     FROM unnest($3::bigint[]) AS a(id)
+     CROSS JOIN LATERAL (
+       SELECT DISTINCT ar.keyword_id
+       FROM app_rankings ar
+       JOIN keywords k ON k.id = ar.keyword_id
+       JOIN storefronts s ON s.id = k.storefront_id
+       WHERE ar.app_id = a.id AND s.code = $1 AND k.platform = $2
+     ) kw
+     JOIN LATERAL (
+       SELECT ar.app_id, ar.keyword_id, ar.rank, ar.ranked_at
+       FROM app_rankings ar
+       WHERE ar.app_id = a.id AND ar.keyword_id = kw.keyword_id
+       ORDER BY ar.ranked_at DESC
+       LIMIT 1
+     ) latest ON true
+     LEFT JOIN LATERAL (
+       SELECT ar.rank
+       FROM app_rankings ar
+       WHERE ar.app_id = a.id AND ar.keyword_id = kw.keyword_id
+         AND ar.ranked_at < latest.ranked_at
+       ORDER BY ar.ranked_at DESC
+       LIMIT 1
+     ) prev ON true
+     JOIN keywords k ON k.id = latest.keyword_id
+     JOIN words w ON w.id = k.word_id
+     ORDER BY latest.app_id, latest.rank ASC`,
+    [storeCode.toLowerCase(), platform, appIds]
+  );
+  return rows;
 }
 
 export async function incrementKeywordDemand(pg, keywordId) {

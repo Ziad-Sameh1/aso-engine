@@ -16,9 +16,13 @@ export async function keywordTrackingRoutes(fastify) {
           type: "object",
           required: ["keyword"],
           properties: {
-            keyword:  { type: "string", minLength: 1 },
-            store:    { type: "string", default: "us" },
-            platform: { type: "string", enum: ["iphone", "ipad"], default: "iphone" },
+            keyword: { type: "string", minLength: 1 },
+            store: { type: "string", default: "us" },
+            platform: {
+              type: "string",
+              enum: ["iphone", "ipad"],
+              default: "iphone",
+            },
           },
         },
       },
@@ -30,10 +34,61 @@ export async function keywordTrackingRoutes(fastify) {
         upsertStorefront(fastify.pg, store),
         upsertWord(fastify.pg, keyword),
       ]);
-      const kw = await upsertKeyword(fastify.pg, word.id, storefront.id, platform);
+      const kw = await upsertKeyword(
+        fastify.pg,
+        word.id,
+        storefront.id,
+        platform
+      );
       await setKeywordTracking(fastify.pg, kw.id, true);
 
       return { id: kw.id, keyword, store, platform, trackingEnabled: true };
+    }
+  );
+
+  // ── POST /api/keywords/track/bulk ────────────────────────────────────────
+  fastify.post(
+    "/api/keywords/track/bulk",
+    {
+      schema: {
+        body: {
+          type: "object",
+          required: ["keywords"],
+          properties: {
+            keywords: {
+              type: "array",
+              items: { type: "string", minLength: 1 },
+              minItems: 1,
+            },
+            store: { type: "string", default: "us" },
+            platform: {
+              type: "string",
+              enum: ["iphone", "ipad"],
+              default: "iphone",
+            },
+          },
+        },
+      },
+    },
+    async (request) => {
+      const { keywords, store = "us", platform = "iphone" } = request.body;
+
+      const storefront = await upsertStorefront(fastify.pg, store);
+      const results = await Promise.all(
+        keywords.map(async (keyword) => {
+          const word = await upsertWord(fastify.pg, keyword);
+          const kw = await upsertKeyword(
+            fastify.pg,
+            word.id,
+            storefront.id,
+            platform
+          );
+          await setKeywordTracking(fastify.pg, kw.id, true);
+          return { id: kw.id, keyword, store, platform, trackingEnabled: true };
+        })
+      );
+
+      return { total: results.length, keywords: results };
     }
   );
 
@@ -63,7 +118,11 @@ export async function keywordTrackingRoutes(fastify) {
     async (request, reply) => {
       const { keywordId } = request.params;
       const { trackingEnabled } = request.body;
-      const row = await setKeywordTracking(fastify.pg, keywordId, trackingEnabled);
+      const row = await setKeywordTracking(
+        fastify.pg,
+        keywordId,
+        trackingEnabled
+      );
       if (!row) return reply.code(404).send({ error: "Keyword not found." });
       return { id: row.id, trackingEnabled: row.tracking_enabled };
     }
