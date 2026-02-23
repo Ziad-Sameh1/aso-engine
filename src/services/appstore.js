@@ -208,6 +208,7 @@ export async function getSearchRankings({ keyword, country = "us", platform = "i
       result.genre = m.genre;
       result.rating = m.rating;
       result.ratingCount = m.ratingCount;
+      result.iconUrl = m.iconUrl;
     }
   }
 
@@ -258,6 +259,7 @@ export async function getSearchRankingsLite({
       allResults[i].genre = m.genre;
       allResults[i].rating = m.rating;
       allResults[i].ratingCount = m.ratingCount;
+      allResults[i].iconUrl = m.iconUrl;
     }
   }
 

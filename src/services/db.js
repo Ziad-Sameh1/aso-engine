@@ -122,12 +122,15 @@ export async function insertSingleAppRating(
   if (rating == null) return;
   await pg.query(
     `INSERT INTO app_ratings (app_id, rating, ratings_count, store, platform)
-     SELECT $1, $2, $3, $4, $5
-     WHERE ROW($2::numeric, $3::int) IS DISTINCT FROM (
-       SELECT r.rating, r.ratings_count FROM app_ratings r
+     SELECT $1::bigint, $2::numeric, $3::int, $4, $5
+     FROM (VALUES (true)) AS v(x)
+     LEFT JOIN LATERAL (
+       SELECT r.rating, r.ratings_count
+       FROM app_ratings r
        WHERE r.app_id = $1 AND r.store = $4 AND r.platform = $5
        ORDER BY r.recorded_at DESC LIMIT 1
-     )`,
+     ) latest ON true
+     WHERE ROW($2::numeric, $3::int) IS DISTINCT FROM ROW(latest.rating, latest.ratings_count)`,
     [appDbId, rating, ratingsCount ?? null, store, platform]
   );
 }
@@ -198,11 +201,13 @@ export async function insertAppRatings(
      INSERT INTO app_ratings (app_id, rating, ratings_count, search_snapshot_id, store, platform)
      SELECT i.app_id, i.rating, i.ratings_count, $4, $5, $6
      FROM input i
-     WHERE ROW(i.rating, i.ratings_count) IS DISTINCT FROM (
-       SELECT r.rating, r.ratings_count FROM app_ratings r
+     LEFT JOIN LATERAL (
+       SELECT r.rating, r.ratings_count
+       FROM app_ratings r
        WHERE r.app_id = i.app_id AND r.store = $5 AND r.platform = $6
        ORDER BY r.recorded_at DESC LIMIT 1
-     )`,
+     ) latest ON true
+     WHERE ROW(i.rating, i.ratings_count) IS DISTINCT FROM ROW(latest.rating, latest.ratings_count)`,
     [appIds, ratingVals, counts, snapshotId, store, platform]
   );
 }
