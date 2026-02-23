@@ -135,6 +135,7 @@ async function lookupAppMetadata(appIds, country = "us") {
         genre: result.primaryGenreName ?? "",
         rating: result.averageUserRating ?? null,
         ratingCount: result.userRatingCount ?? null,
+        iconUrl: result.artworkUrl512 ?? result.artworkUrl100 ?? null,
       };
     }
 
@@ -172,6 +173,7 @@ export async function fetchAppMetadata(appleId, country = "us") {
     genre:       result.primaryGenreName ?? "",
     rating:      result.averageUserRating  ?? null,
     ratingCount: result.userRatingCount    ?? null,
+    iconUrl:     result.artworkUrl512 ?? result.artworkUrl100 ?? null,
   };
 }
 

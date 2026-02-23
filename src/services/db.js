@@ -53,20 +53,23 @@ export async function upsertApps(pg, appDataArray) {
   const developers = appDataArray.map((a) => a.developer || null);
   const prices = appDataArray.map((a) => a.price || null);
   const genres = appDataArray.map((a) => a.genre || null);
+  const iconUrls = appDataArray.map((a) => a.iconUrl || null);
 
   const { rows } = await pg.query(
-    `INSERT INTO apps (apple_id, bundle_id, name, developer, price, genre, updated_at)
+    `INSERT INTO apps (apple_id, bundle_id, name, developer, price, genre, icon_url, updated_at)
      SELECT unnest($1::text[]), unnest($2::text[]), unnest($3::text[]),
-            unnest($4::text[]), unnest($5::text[]), unnest($6::text[]), NOW()
+            unnest($4::text[]), unnest($5::text[]), unnest($6::text[]),
+            unnest($7::text[]), NOW()
      ON CONFLICT (apple_id) DO UPDATE SET
        bundle_id  = COALESCE(NULLIF(EXCLUDED.bundle_id, ''),  apps.bundle_id),
        name       = COALESCE(NULLIF(EXCLUDED.name, ''),       apps.name),
        developer  = COALESCE(NULLIF(EXCLUDED.developer, ''),  apps.developer),
        price      = COALESCE(NULLIF(EXCLUDED.price, ''),      apps.price),
        genre      = COALESCE(NULLIF(EXCLUDED.genre, ''),      apps.genre),
+       icon_url   = COALESCE(NULLIF(EXCLUDED.icon_url, ''),   apps.icon_url),
        updated_at = NOW()
      RETURNING id, apple_id`,
-    [appleIds, bundleIds, names, developers, prices, genres]
+    [appleIds, bundleIds, names, developers, prices, genres, iconUrls]
   );
 
   for (const row of rows) appIdMap.set(row.apple_id, row.id);
@@ -78,17 +81,18 @@ export async function upsertApps(pg, appDataArray) {
  */
 export async function upsertApp(
   pg,
-  { appleId, bundleId, name, developer, price, genre }
+  { appleId, bundleId, name, developer, price, genre, iconUrl }
 ) {
   const { rows } = await pg.query(
-    `INSERT INTO apps (apple_id, bundle_id, name, developer, price, genre, updated_at)
-     VALUES ($1, $2, $3, $4, $5, $6, NOW())
+    `INSERT INTO apps (apple_id, bundle_id, name, developer, price, genre, icon_url, updated_at)
+     VALUES ($1, $2, $3, $4, $5, $6, $7, NOW())
      ON CONFLICT (apple_id) DO UPDATE SET
        bundle_id  = COALESCE(NULLIF(EXCLUDED.bundle_id, ''), apps.bundle_id),
        name       = COALESCE(NULLIF(EXCLUDED.name, ''),      apps.name),
        developer  = COALESCE(NULLIF(EXCLUDED.developer, ''), apps.developer),
        price      = COALESCE(NULLIF(EXCLUDED.price, ''),     apps.price),
        genre      = COALESCE(NULLIF(EXCLUDED.genre, ''),     apps.genre),
+       icon_url   = COALESCE(NULLIF(EXCLUDED.icon_url, ''),  apps.icon_url),
        updated_at = NOW()
      RETURNING id, apple_id`,
     [
@@ -98,6 +102,7 @@ export async function upsertApp(
       developer || null,
       price || null,
       genre || null,
+      iconUrl || null,
     ]
   );
   return rows[0];
@@ -442,7 +447,7 @@ export async function getLatestRatingsBulk(
 
 /**
  * Latest app_ranking per (app, keyword) for keywords in the given storefront; includes previous rank.
- * Returns [{ app_id, keyword, current_rank, current_ranked_at, previous_rank }].
+ * Returns [{ app_id, keyword_id, search_snapshot_id, keyword, current_rank, current_ranked_at, previous_rank }].
  *
  * Uses LATERAL joins to fetch only the 2 most recent rankings per (app, keyword) pair,
  * avoiding full-table window functions over all historical data.
@@ -456,6 +461,8 @@ export async function getLatestRankingsByStoreBulk(
   if (!appIds?.length) return [];
   const { rows } = await pg.query(
     `SELECT latest.app_id,
+            latest.keyword_id,
+            latest.search_snapshot_id,
             w.text AS keyword,
             latest.rank AS current_rank,
             latest.ranked_at AS current_ranked_at,
@@ -469,7 +476,7 @@ export async function getLatestRankingsByStoreBulk(
        WHERE ar.app_id = a.id AND s.code = $1 AND k.platform = $2
      ) kw
      JOIN LATERAL (
-       SELECT ar.app_id, ar.keyword_id, ar.rank, ar.ranked_at
+       SELECT ar.app_id, ar.keyword_id, ar.rank, ar.ranked_at, ar.search_snapshot_id
        FROM app_rankings ar
        WHERE ar.app_id = a.id AND ar.keyword_id = kw.keyword_id
        ORDER BY ar.ranked_at DESC
@@ -487,6 +494,32 @@ export async function getLatestRankingsByStoreBulk(
      JOIN words w ON w.id = k.word_id
      ORDER BY latest.app_id, latest.rank ASC`,
     [storeCode.toLowerCase(), platform, appIds]
+  );
+  return rows;
+}
+
+/**
+ * For a batch of (keyword_id, snapshot_id, rank) tuples, returns the app at rank-1 and rank+1
+ * within the same snapshot. Returns [{ keyword_id, original_rank, neighbor_rank, apple_id, name, developer, genre }].
+ */
+export async function getRankNeighborsBulk(pg, keywordIds, snapshotIds, ranks) {
+  if (!keywordIds?.length) return [];
+  const { rows } = await pg.query(
+    `WITH input AS (
+       SELECT unnest($1::bigint[])   AS keyword_id,
+              unnest($2::bigint[])   AS snapshot_id,
+              unnest($3::smallint[]) AS rank
+     )
+     SELECT i.keyword_id, i.rank AS original_rank,
+            ar.rank AS neighbor_rank,
+            a.apple_id, a.name, a.developer, a.genre, a.icon_url
+     FROM input i
+     JOIN app_rankings ar
+       ON ar.keyword_id = i.keyword_id
+      AND ar.search_snapshot_id = i.snapshot_id
+      AND ar.rank IN (i.rank - 1, i.rank + 1)
+     JOIN apps a ON a.id = ar.app_id`,
+    [keywordIds, snapshotIds, ranks]
   );
   return rows;
 }

@@ -67,6 +67,7 @@ export async function runSearch(
     developer: r.developer,
     price:     r.price,
     genre:     r.genre,
+    iconUrl:   r.iconUrl,
   }));
 
   const [[storefront, word], appIdMap] = await Promise.all([

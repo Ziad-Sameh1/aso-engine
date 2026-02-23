@@ -14,6 +14,7 @@ import {
   getAppsByAppleIds,
   getLatestRatingsBulk,
   getLatestRankingsByStoreBulk,
+  getRankNeighborsBulk,
   getKeywordCurrentPopularity,
   getKeywordCurrentCompetitiveness,
   upsertApp,
@@ -199,6 +200,26 @@ export async function appsRoutes(fastify) {
         getLatestRankingsByStoreBulk(fastify.pg, appIdList, store, platform),
       ]);
 
+      // Fetch rank neighbors (above/below) in one bulk query using snapshot context
+      const validRankings = rankingsRows.filter((r) => r.search_snapshot_id != null);
+      const neighborsRows = await getRankNeighborsBulk(
+        fastify.pg,
+        validRankings.map((r) => Number(r.keyword_id)),
+        validRankings.map((r) => Number(r.search_snapshot_id)),
+        validRankings.map((r) => r.current_rank)
+      );
+
+      // Build lookup: "keywordId:originalRank" -> { above, below }
+      const neighborMap = new Map();
+      for (const n of neighborsRows) {
+        const key = `${n.keyword_id}:${n.original_rank}`;
+        const entry = neighborMap.get(key) ?? { above: null, below: null };
+        const meta = { appleId: n.apple_id, name: n.name, developer: n.developer, genre: n.genre, iconUrl: n.icon_url };
+        if (n.neighbor_rank < n.original_rank) entry.above = meta;
+        else entry.below = meta;
+        neighborMap.set(key, entry);
+      }
+
       const ratingByAppId = new Map(
         ratingsRows.map((r) => [Number(r.app_id), r])
       );
@@ -206,11 +227,15 @@ export async function appsRoutes(fastify) {
       for (const row of rankingsRows) {
         const id = Number(row.app_id);
         const list = rankingsByAppId.get(id) ?? [];
+        const neighborKey = `${row.keyword_id}:${row.current_rank}`;
+        const neighbors = neighborMap.get(neighborKey) ?? { above: null, below: null };
         list.push({
           keyword: row.keyword,
           rank: row.current_rank,
           previousRank: row.previous_rank ?? null,
           rankedAt: row.current_ranked_at,
+          above: neighbors.above,
+          below: neighbors.below,
         });
         rankingsByAppId.set(id, list);
       }
