@@ -116,7 +116,13 @@ export async function insertSingleAppRating(
 ) {
   if (rating == null) return;
   await pg.query(
-    `INSERT INTO app_ratings (app_id, rating, ratings_count, store, platform) VALUES ($1, $2, $3, $4, $5)`,
+    `INSERT INTO app_ratings (app_id, rating, ratings_count, store, platform)
+     SELECT $1, $2, $3, $4, $5
+     WHERE ROW($2::numeric, $3::int) IS DISTINCT FROM (
+       SELECT r.rating, r.ratings_count FROM app_ratings r
+       WHERE r.app_id = $1 AND r.store = $4 AND r.platform = $5
+       ORDER BY r.recorded_at DESC LIMIT 1
+     )`,
     [appDbId, rating, ratingsCount ?? null, store, platform]
   );
 }
@@ -145,8 +151,19 @@ export async function insertAppRankings(pg, keywordId, snapshotId, rankings) {
   const appIds = rankings.map((r) => r.appDbId);
   const ranks = rankings.map((r) => r.rank);
   await pg.query(
-    `INSERT INTO app_rankings (keyword_id, app_id, rank, search_snapshot_id)
-     SELECT $1, unnest($2::bigint[]), unnest($3::smallint[]), $4`,
+    `WITH input AS (
+       SELECT $1::bigint AS keyword_id,
+              unnest($2::bigint[]) AS app_id,
+              unnest($3::smallint[]) AS rank
+     )
+     INSERT INTO app_rankings (keyword_id, app_id, rank, search_snapshot_id)
+     SELECT i.keyword_id, i.app_id, i.rank, $4
+     FROM input i
+     WHERE i.rank IS DISTINCT FROM (
+       SELECT ar.rank FROM app_rankings ar
+       WHERE ar.app_id = i.app_id AND ar.keyword_id = i.keyword_id
+       ORDER BY ar.ranked_at DESC LIMIT 1
+     )`,
     [keywordId, appIds, ranks, snapshotId]
   );
 }
@@ -168,22 +185,43 @@ export async function insertAppRatings(
   const ratingVals = valid.map((r) => r.rating);
   const counts = valid.map((r) => r.ratingsCount ?? null);
   await pg.query(
-    `INSERT INTO app_ratings (app_id, rating, ratings_count, search_snapshot_id, store, platform)
-     SELECT unnest($1::bigint[]), unnest($2::numeric[]), unnest($3::int[]), $4, $5, $6`,
+    `WITH input AS (
+       SELECT unnest($1::bigint[]) AS app_id,
+              unnest($2::numeric[]) AS rating,
+              unnest($3::int[]) AS ratings_count
+     )
+     INSERT INTO app_ratings (app_id, rating, ratings_count, search_snapshot_id, store, platform)
+     SELECT i.app_id, i.rating, i.ratings_count, $4, $5, $6
+     FROM input i
+     WHERE ROW(i.rating, i.ratings_count) IS DISTINCT FROM (
+       SELECT r.rating, r.ratings_count FROM app_ratings r
+       WHERE r.app_id = i.app_id AND r.store = $5 AND r.platform = $6
+       ORDER BY r.recorded_at DESC LIMIT 1
+     )`,
     [appIds, ratingVals, counts, snapshotId, store, platform]
   );
 }
 
 export async function insertPopularity(pg, keywordId, popularity) {
   await pg.query(
-    `INSERT INTO keyword_popularity (keyword_id, popularity) VALUES ($1, $2)`,
+    `INSERT INTO keyword_popularity (keyword_id, popularity)
+     SELECT $1, $2
+     WHERE $2 IS DISTINCT FROM (
+       SELECT kp.popularity FROM keyword_popularity kp
+       WHERE kp.keyword_id = $1 ORDER BY kp.fetched_at DESC LIMIT 1
+     )`,
     [keywordId, popularity]
   );
 }
 
 export async function insertCompetitiveness(pg, keywordId, competitiveness) {
   await pg.query(
-    `INSERT INTO keyword_competitiveness (keyword_id, competitiveness) VALUES ($1, $2)`,
+    `INSERT INTO keyword_competitiveness (keyword_id, competitiveness)
+     SELECT $1, $2
+     WHERE $2 IS DISTINCT FROM (
+       SELECT kc.competitiveness FROM keyword_competitiveness kc
+       WHERE kc.keyword_id = $1 ORDER BY kc.fetched_at DESC LIMIT 1
+     )`,
     [keywordId, competitiveness]
   );
 }
