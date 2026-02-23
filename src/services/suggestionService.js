@@ -1,8 +1,8 @@
 /**
  * Keyword suggestion service.
  *
- * Stage 1 — Gemini Flash 2.5 generates exactly 20 structured keywords from app metadata (cached 24h)
- *           Order: (1) app unique brand name, (2) individual app features, (3) long-tail = name + feature
+ * Stage 1 — Gemini Flash 2.5 generates exactly 20 three-word feature keywords from app metadata (cached 24h)
+ *           Order: (1) permutations of title words (excluding brand), (2) feature-based 3-word combos
  * Stage 2 — runSearch for all 20 in parallel: populates DB + calculates pop/comp as side effect
  * Stage 3 — Read metrics from DB (rank up to 200, popularity, competitiveness) — no extra API calls
  */
@@ -44,17 +44,20 @@ async function generateKeywordSuggestions(appMeta, redis) {
 - Price: ${appMeta.price}
 - Bundle ID: ${appMeta.bundleId}
 
-Generate exactly 20 search keywords in this exact order:
-1. The app's unique brand/product name (first keyword, always)
-2. Individual app feature keywords — one keyword per distinct feature (e.g., "face filter", "rain forecast", "budget tracker")
-3. Long-tail keywords — each combining the unique brand name with one of the app's features (e.g., "appname feature", "brandname usecase")
+Generate exactly 20 search keywords. Every keyword must be exactly 3 words.
 
-Fill all 20 slots following this order. Use as many feature keywords as needed, then fill remaining slots with brand+feature long-tail combinations.
+NEVER include the app's unique brand or product name in any keyword. Keywords must describe features, use cases, or categories only.
+
+Priority order:
+1. Title-word permutations — take the generic/descriptive words from the app title (excluding the brand name) and produce all useful 3-word permutations first.
+2. Feature-based keywords — fill remaining slots with 3-word combinations describing the app's features, use cases, or category (e.g., "monthly budget planner", "ai budget money").
 
 Rules:
+- Every keyword is exactly 3 words
 - No duplicates
 - All lowercase
 - No competitor names
+- No brand or product names
 - Return ONLY a JSON array of exactly 20 strings, nothing else. No markdown, no explanation.`;
 
   const result = await model.generateContent(prompt);
