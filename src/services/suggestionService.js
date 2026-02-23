@@ -1,8 +1,8 @@
 /**
  * Keyword suggestion service.
  *
- * Stage 1 — Gemini Flash 2.5 generates exactly 20 three-word feature keywords from app metadata (cached 24h)
- *           Order: (1) permutations of title words (excluding brand), (2) feature-based 3-word combos
+ * Stage 1 — Gemini Flash 2.5 generates exactly 20 three-word keywords from app metadata (cached 24h)
+ *           Each keyword contains at least 2 title words (excluding brand) + 1 feature/use-case word
  * Stage 2 — runSearch for all 20 in parallel: populates DB + calculates pop/comp as side effect
  * Stage 3 — Read metrics from DB (rank up to 200, popularity, competitiveness) — no extra API calls
  */
@@ -46,18 +46,18 @@ async function generateKeywordSuggestions(appMeta, redis) {
 
 Generate exactly 20 search keywords. Every keyword must be exactly 3 words.
 
-NEVER include the app's unique brand or product name in any keyword. Keywords must describe features, use cases, or categories only.
+Step 1 — Identify the primary keywords: extract the generic/descriptive words from the app title, excluding the app's unique brand or product name. These are the "primary keywords."
 
-Priority order:
-1. Title-word permutations — take the generic/descriptive words from the app title (excluding the brand name) and produce all useful 3-word permutations first.
-2. Feature-based keywords — fill remaining slots with 3-word combinations describing the app's features, use cases, or category (e.g., "monthly budget planner", "ai budget money").
+Step 2 — Build keywords: every keyword must contain at least 2 of the primary keywords. The remaining word should be a relevant feature, use case, or category term.
+Example: if the title is "BrandName Budget Tracker Pro", the primary keywords are "budget", "tracker", "pro". A valid keyword would be "budget tracker daily" or "pro budget planner". An invalid keyword would be "daily expense log" (only 0 primary keywords).
 
 Rules:
 - Every keyword is exactly 3 words
+- Every keyword contains at least 2 primary keywords from the title
 - No duplicates
 - All lowercase
 - No competitor names
-- No brand or product names
+- NEVER include the app's brand or product name in any keyword
 - Return ONLY a JSON array of exactly 20 strings, nothing else. No markdown, no explanation.`;
 
   const result = await model.generateContent(prompt);
