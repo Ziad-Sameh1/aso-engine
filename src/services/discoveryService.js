@@ -24,10 +24,11 @@ import {
   upsertStorefront,
   upsertWord,
   upsertKeyword,
-  upsertApp,
+  upsertApps,
   insertPopularity,
   insertCompetitiveness,
   insertAppRankings,
+  insertSearchSnapshot,
 } from "./db.js";
 
 // ── Concurrency limiter (avoids adding p-limit dependency) ───────────────────
@@ -171,7 +172,8 @@ async function checkRank(pair, appleId, store, platform) {
     if (!match) return null;
     // Carry top-10 IDs so Stage 4 can compute competitiveness without re-fetching
     const top10Ids = results.slice(0, 10).map((r) => r.id);
-    return { keyword: pair, rank: match.rank, totalResults: results.length, top10Ids };
+    // Carry full results so persistence can create a snapshot with all ranked apps
+    return { keyword: pair, rank: match.rank, totalResults: results.length, top10Ids, searchResults: results };
   } catch {
     return null;
   }
@@ -225,21 +227,23 @@ async function enrichPair(item, pg, redis, store, platform, appleId, appMeta) {
     }
   }
 
-  // Lightweight fire-and-forget persistence
+  // Lightweight fire-and-forget persistence (with snapshot for neighbor lookups)
   (async () => {
     try {
-      const [storefront, word, appRow] = await Promise.all([
+      // Upsert all apps from the search results so neighbor data exists
+      const allAppData = item.searchResults.map((r) => ({
+        appleId: r.id,
+        bundleId: r.bundleId || null,
+        name: r.name || null,
+        developer: null,
+        price: null,
+        genre: null,
+        iconUrl: null,
+      }));
+      const [storefront, word, appIdMap] = await Promise.all([
         upsertStorefront(pg, store),
         upsertWord(pg, normKeyword),
-        upsertApp(pg, {
-          appleId,
-          bundleId: appMeta.bundleId || null,
-          name: appMeta.name,
-          developer: appMeta.developer,
-          price: appMeta.price,
-          genre: appMeta.genre,
-          iconUrl: appMeta.iconUrl,
-        }),
+        upsertApps(pg, allAppData),
       ]);
       const kwRow = await upsertKeyword(pg, word.id, storefront.id, platform);
       if (popularity !== null) {
@@ -248,7 +252,21 @@ async function enrichPair(item, pg, redis, store, platform, appleId, appMeta) {
       if (competitiveness !== null) {
         await insertCompetitiveness(pg, kwRow.id, competitiveness);
       }
-      await insertAppRankings(pg, kwRow.id, null, [{ appDbId: appRow.id, rank: item.rank }]);
+      // Create a search snapshot so getRankNeighborsBulk can find above/below
+      const snapshot = await insertSearchSnapshot(
+        pg,
+        kwRow.id,
+        item.searchResults.length,
+        item.searchResults
+      );
+      await insertAppRankings(
+        pg,
+        kwRow.id,
+        snapshot.id,
+        item.searchResults
+          .filter((r) => appIdMap.has(r.id))
+          .map((r) => ({ appDbId: appIdMap.get(r.id), rank: r.rank }))
+      );
     } catch {
       // Non-fatal
     }
@@ -329,25 +347,39 @@ export async function discoverKeywords(pg, redis, appleId, { store = "us", platf
     competitiveness: null,
   }));
 
-  // Fire-and-forget: persist rankings for unenriched pairs
+  // Fire-and-forget: persist rankings for unenriched pairs (with snapshots)
   (async () => {
     try {
-      const [storefront, appRow] = await Promise.all([
-        upsertStorefront(pg, store),
-        upsertApp(pg, {
-          appleId,
-          bundleId: appMeta.bundleId || null,
-          name: appMeta.name,
-          developer: appMeta.developer,
-          price: appMeta.price,
-          genre: appMeta.genre,
-          iconUrl: appMeta.iconUrl,
-        }),
-      ]);
+      const storefront = await upsertStorefront(pg, store);
       for (const item of rankingPairs.slice(topN)) {
-        const word = await upsertWord(pg, item.keyword.toLowerCase().trim());
+        const allAppData = item.searchResults.map((r) => ({
+          appleId: r.id,
+          bundleId: r.bundleId || null,
+          name: r.name || null,
+          developer: null,
+          price: null,
+          genre: null,
+          iconUrl: null,
+        }));
+        const [word, appIdMap] = await Promise.all([
+          upsertWord(pg, item.keyword.toLowerCase().trim()),
+          upsertApps(pg, allAppData),
+        ]);
         const kwRow = await upsertKeyword(pg, word.id, storefront.id, platform);
-        await insertAppRankings(pg, kwRow.id, null, [{ appDbId: appRow.id, rank: item.rank }]);
+        const snapshot = await insertSearchSnapshot(
+          pg,
+          kwRow.id,
+          item.searchResults.length,
+          item.searchResults
+        );
+        await insertAppRankings(
+          pg,
+          kwRow.id,
+          snapshot.id,
+          item.searchResults
+            .filter((r) => appIdMap.has(r.id))
+            .map((r) => ({ appDbId: appIdMap.get(r.id), rank: r.rank }))
+        );
       }
     } catch {
       // Non-fatal
