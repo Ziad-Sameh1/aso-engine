@@ -26,6 +26,7 @@ import {
   upsertKeyword,
   upsertApp,
   insertPopularity,
+  insertCompetitiveness,
   insertAppRankings,
 } from "./db.js";
 
@@ -243,6 +244,9 @@ async function enrichPair(item, pg, redis, store, platform, appleId, appMeta) {
       const kwRow = await upsertKeyword(pg, word.id, storefront.id, platform);
       if (popularity !== null) {
         await insertPopularity(pg, kwRow.id, popularity);
+      }
+      if (competitiveness !== null) {
+        await insertCompetitiveness(pg, kwRow.id, competitiveness);
       }
       await insertAppRankings(pg, kwRow.id, null, [{ appDbId: appRow.id, rank: item.rank }]);
     } catch {
