@@ -85,23 +85,23 @@ export async function getKeywordSuggestions(pg, redis, appleId, { store = "us", 
   // ── Stage 1: App metadata + Gemini suggestions ───────────────────────────
   let t = Date.now();
 
-  let appRow = await getAppByAppleId(pg, appleId);
+  // let appRow = await getAppByAppleId(pg, appleId);
   let appMeta;
 
-  if (appRow) {
-    appMeta = {
-      appleId,
-      name:      appRow.name,
-      developer: appRow.developer,
-      genre:     appRow.genre,
-      price:     appRow.price,
-      bundleId:  appRow.bundle_id,
-    };
-  } else {
+  // if (appRow) {
+  //   appMeta = {
+  //     appleId,
+  //     name:      appRow.name,
+  //     developer: appRow.developer,
+  //     genre:     appRow.genre,
+  //     price:     appRow.price,
+  //     bundleId:  appRow.bundle_id,
+  //   };
+  // } else {
     const fetched = await fetchAppMetadata(appleId, store);
     if (!fetched) throw new Error(`App ${appleId} not found on App Store.`);
     appMeta = { appleId, ...fetched };
-  }
+  // }
 
   const candidates = await generateKeywordSuggestions(appMeta, redis);
   timings.stage1_gemini_ms = Date.now() - t;

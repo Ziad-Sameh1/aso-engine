@@ -1,9 +1,10 @@
 import { CacheService } from "../services/cache.js";
 import { config } from "../config/index.js";
 import { runSearch } from "../services/searchService.js";
-import { fetchAppMetadata } from "../services/appstore.js";
+import { fetchAppMetadata, scrapeAppPageMetadata } from "../services/appstore.js";
 import { calculatePopularity } from "../services/popularity.js";
 import { getKeywordSuggestions } from "../services/suggestionService.js";
+import { discoverKeywords } from "../services/discoveryService.js";
 import {
   resolveKeyword,
   getAppCurrentRank,
@@ -53,6 +54,41 @@ export async function appsRoutes(fastify) {
     if (kw) incrementKeywordDemand(fastify.pg, kw.id).catch(() => {});
     return kw;
   }
+
+  // ── GET /api/apps/:appleId/metadata ─────────────────────────────────────
+  fastify.get(
+    "/api/apps/:appleId/metadata",
+    {
+      schema: {
+        params: {
+          type: "object",
+          required: ["appleId"],
+          properties: { appleId: { type: "string" } },
+        },
+        querystring: {
+          type: "object",
+          properties: {
+            store: { type: "string", default: "us" },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const { appleId } = request.params;
+      const { store } = request.query;
+      const cacheKey = `metadata:${appleId}:${store}`;
+
+      const cached = await cache.get(cacheKey);
+      if (cached) return { ...cached, cached: true };
+
+      const meta = await scrapeAppPageMetadata(appleId, store);
+      if (!meta) return reply.code(404).send({ error: "App not found on the App Store." });
+
+      const result = { appleId, store, ...meta };
+      await cache.set(cacheKey, result, config.cacheTtlSearch);
+      return { ...result, cached: false };
+    }
+  );
 
   // ── GET /api/apps/:appleId/rank ──────────────────────────────────────────
   fastify.get(
@@ -647,6 +683,94 @@ export async function appsRoutes(fastify) {
           { err, appleId },
           "[POST /api/apps/:appleId/keywords/suggest] failed"
         );
+        return reply.code(500).send({ error: err.message });
+      }
+    }
+  );
+
+  // ── POST /api/apps/:appleId/keywords/discover ────────────────────────────
+  fastify.post(
+    "/api/apps/:appleId/keywords/discover",
+    {
+      schema: {
+        params: {
+          type: "object",
+          required: ["appleId"],
+          properties: { appleId: { type: "string" } },
+        },
+        body: {
+          type: "object",
+          properties: {
+            store:    { type: "string", default: "us", pattern: "^[a-z]{2}$" },
+            platform: { type: "string", enum: ["iphone", "ipad"], default: "iphone" },
+          },
+        },
+        response: {
+          200: {
+            type: "object",
+            properties: {
+              appleId:  { type: "string" },
+              store:    { type: "string" },
+              platform: { type: "string" },
+              app: {
+                type: "object",
+                properties: {
+                  name:      { type: ["string", "null"] },
+                  subtitle:  { type: ["string", "null"] },
+                  developer: { type: ["string", "null"] },
+                  genre:     { type: ["string", "null"] },
+                },
+              },
+              stats: {
+                type: "object",
+                properties: {
+                  tokensExtracted:  { type: "number" },
+                  synonymsGenerated:{ type: "number" },
+                  uniqueTerms:      { type: "number" },
+                  pairsGenerated:   { type: "number" },
+                  pairsRanking:     { type: "number" },
+                },
+              },
+              timings: { type: "object", additionalProperties: true },
+              results: {
+                type: "array",
+                items: {
+                  type: "object",
+                  properties: {
+                    keyword:         { type: "string" },
+                    rank:            { type: "number" },
+                    popularity:      { type: ["number", "null"] },
+                    competitiveness: { type: ["number", "null"] },
+                  },
+                },
+              },
+              cached: { type: "boolean" },
+            },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const { appleId } = request.params;
+      const { store = "us", platform = "iphone" } = request.body ?? {};
+      const cacheKey = `discovery:${appleId}:${store}:${platform}`;
+
+      const cached = await cache.get(cacheKey);
+      if (cached) return { ...cached, cached: true };
+
+      try {
+        const data = await discoverKeywords(fastify.pg, fastify.redis, appleId, { store, platform });
+        const result = { appleId, store, platform, ...data };
+        await cache.set(cacheKey, result, config.cacheTtlDiscovery);
+        return { ...result, cached: false };
+      } catch (err) {
+        fastify.log.error(
+          { err, appleId },
+          "[POST /api/apps/:appleId/keywords/discover] failed"
+        );
+        if (err.message?.includes("not found on App Store")) {
+          return reply.code(404).send({ error: err.message });
+        }
         return reply.code(500).send({ error: err.message });
       }
     }

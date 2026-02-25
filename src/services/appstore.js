@@ -17,7 +17,7 @@ const LOOKUP_BATCH_SIZE = 150;
 
 // ── Step 1 ──────────────────────────────────────────────────────────────────
 
-async function fetchSearchHtml(term, country = "us", platform = "iphone") {
+export async function fetchSearchHtml(term, country = "us", platform = "iphone", { signal } = {}) {
   const url = `https://apps.apple.com/${country}/${platform}/search?term=${encodeURIComponent(term)}`;
 
   const response = await fetch(url, {
@@ -30,6 +30,7 @@ async function fetchSearchHtml(term, country = "us", platform = "iphone") {
       "Sec-Fetch-Mode": "navigate",
       "Sec-Fetch-Site": "none",
     },
+    signal,
   });
 
   if (!response.ok) {
@@ -41,7 +42,7 @@ async function fetchSearchHtml(term, country = "us", platform = "iphone") {
 
 // ── Step 2 ──────────────────────────────────────────────────────────────────
 
-function extractSearchResults(html) {
+export function extractSearchResults(html) {
   const pattern =
     /<script\s+type="application\/json"\s+id="serialized-server-data">\s*(\{.*?\})\s*<\/script>/s;
   const match = html.match(pattern);
@@ -107,7 +108,7 @@ function extractSearchResults(html) {
 
 // ── Step 3 ──────────────────────────────────────────────────────────────────
 
-async function lookupAppMetadata(appIds, country = "us") {
+export async function lookupAppMetadata(appIds, country = "us") {
   const metadata = {};
 
   for (let i = 0; i < appIds.length; i += LOOKUP_BATCH_SIZE) {
@@ -148,6 +149,88 @@ async function lookupAppMetadata(appIds, country = "us") {
   return metadata;
 }
 
+// ── Single-app page scraper ───────────────────────────────────────────────────
+
+/**
+ * Scrape rich metadata for a single app from its App Store HTML page.
+ * Uses the `software-application` JSON-LD block embedded in the page.
+ *
+ * @param {string} appleId
+ * @param {string} [country="us"]
+ * @returns {Promise<object|null>}
+ */
+export async function scrapeAppPageMetadata(appleId, country = "us") {
+  // Apple redirects placeholder slugs to the real URL automatically
+  const url = `https://apps.apple.com/${country}/app/a/id${appleId}`;
+
+  const response = await fetch(url, {
+    headers: {
+      "User-Agent": USER_AGENT,
+      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+      "Accept-Language": "en-US,en;q=0.9",
+      Cookie: `geo=${country.toUpperCase()}`,
+      "Sec-Fetch-Dest": "document",
+      "Sec-Fetch-Mode": "navigate",
+      "Sec-Fetch-Site": "none",
+    },
+    redirect: "follow",
+  });
+
+  if (!response.ok) {
+    if (response.status === 404) return null;
+    throw new Error(`HTTP ${response.status} fetching app page`);
+  }
+
+  const html = await response.text();
+
+  // --- JSON-LD: software-application ---
+  const ldMatch = html.match(
+    /<script\s[^>]*id=["']?software-application["']?[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/i
+  ) ?? html.match(
+    /<script\s[^>]*type=["']application\/ld\+json["'][^>]*id=["']?software-application["']?[^>]*>([\s\S]*?)<\/script>/i
+  );
+
+  if (!ldMatch) return null;
+
+  let ld;
+  try {
+    ld = JSON.parse(ldMatch[1].trim());
+  } catch {
+    return null;
+  }
+
+  // --- subtitle (HTML body — not present in JSON-LD) ---
+  const subtitleMatch = html.match(/<h2\s+class="subtitle[^"]*">([^<]+)<\/h2>/);
+  const subtitle = subtitleMatch?.[1]?.trim() ?? null;
+
+  // --- og:image (social/share banner, different from icon) ---
+  const ogImageMatch = html.match(/<meta\s+property="og:image"\s+content="([^"]+)"/);
+  const socialImageUrl = ogImageMatch?.[1] ?? null;
+
+  // --- canonical URL ---
+  const canonicalMatch = html.match(/<link\s+rel="canonical"\s+href="([^"]+)"/);
+  const appStoreUrl = canonicalMatch?.[1] ?? null;
+
+  return {
+    name:             ld.name               ?? null,
+    subtitle,
+    description:      ld.description        ?? null,
+    iconUrl:          ld.image              ?? null,
+    socialImageUrl,
+    availableOnDevice: ld.availableOnDevice ?? null,
+    operatingSystem:  ld.operatingSystem    ?? null,
+    price:            ld.offers?.price      ?? null,
+    priceCurrency:    ld.offers?.priceCurrency ?? null,
+    isFree:           ld.offers?.category === "free",
+    genre:            ld.applicationCategory ?? null,
+    rating:           ld.aggregateRating?.ratingValue  ?? null,
+    reviewCount:      ld.aggregateRating?.reviewCount   ?? null,
+    developer:        ld.author?.name       ?? null,
+    developerUrl:     ld.author?.url        ?? null,
+    appStoreUrl,
+  };
+}
+
 // ── Single-app iTunes Lookup (exported) ──────────────────────────────────────
 
 /**
@@ -159,21 +242,32 @@ async function lookupAppMetadata(appIds, country = "us") {
  * @returns {Promise<object|null>}
  */
 export async function fetchAppMetadata(appleId, country = "us") {
-  const url = `https://itunes.apple.com/lookup?id=${appleId}&country=${country}`;
-  const response = await fetch(url, { headers: { "User-Agent": USER_AGENT } });
-  if (!response.ok) throw new Error(`iTunes Lookup HTTP ${response.status}`);
-  const data = await response.json();
-  const result = data.results?.[0];
-  if (!result) return null;
+  const meta = await scrapeAppPageMetadata(appleId, country);
+  if (!meta) return null;
+
+  // Format price as a display string (same shape callers expect)
+  const price = meta.isFree ? "Free" : (meta.price != null ? `${meta.priceCurrency} ${meta.price}` : "");
+
   return {
-    name:        result.trackName        ?? "",
-    bundleId:    result.bundleId         ?? "",
-    developer:   result.artistName       ?? "",
-    price:       result.formattedPrice   ?? "",
-    genre:       result.primaryGenreName ?? "",
-    rating:      result.averageUserRating  ?? null,
-    ratingCount: result.userRatingCount    ?? null,
-    iconUrl:     result.artworkUrl512 ?? result.artworkUrl100 ?? null,
+    // ── existing fields (backwards-compatible) ──
+    name:        meta.name        ?? "",
+    bundleId:    "",               // not available from HTML — DB COALESCE keeps existing value
+    developer:   meta.developer   ?? "",
+    price,
+    genre:       meta.genre       ?? "",
+    rating:      meta.rating,
+    ratingCount: meta.reviewCount,
+    iconUrl:     meta.iconUrl,
+    // ── new fields ──
+    subtitle:         meta.subtitle,
+    description:      meta.description,
+    developerUrl:     meta.developerUrl,
+    socialImageUrl:   meta.socialImageUrl,
+    availableOnDevice: meta.availableOnDevice,
+    operatingSystem:  meta.operatingSystem,
+    isFree:           meta.isFree,
+    priceCurrency:    meta.priceCurrency,
+    appStoreUrl:      meta.appStoreUrl,
   };
 }
 

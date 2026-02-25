@@ -33,6 +33,14 @@ export const config = {
   workerSuggestDelayMs: ttl(process.env.WORKER_SUGGEST_DELAY_MS, 200),
   geminiApiKey: process.env.GEMINI_API_KEY,
   cacheTtlSuggestions: ttl(process.env.CACHE_TTL_SUGGESTIONS, 86400), // 24h
+  // Discovery engine
+  discoverySearchConcurrency:     ttl(process.env.DISCOVERY_SEARCH_CONCURRENCY, 20),
+  discoveryPopularityConcurrency: ttl(process.env.DISCOVERY_POPULARITY_CONCURRENCY, 5),
+  discoveryMaxTerms:              ttl(process.env.DISCOVERY_MAX_TERMS, 40),
+  discoveryMaxPairs:              ttl(process.env.DISCOVERY_MAX_PAIRS, 2000),
+  discoverySearchTimeoutMs:       ttl(process.env.DISCOVERY_SEARCH_TIMEOUT_MS, 10000),
+  discoveryTopNEnrich:            ttl(process.env.DISCOVERY_TOP_N_ENRICH, 20),
+  cacheTtlDiscovery:              ttl(process.env.CACHE_TTL_DISCOVERY, 3600),
   apiKey: process.env.API_KEY,
   apiKeyPrevious: process.env.API_KEY_PREVIOUS,
 };
