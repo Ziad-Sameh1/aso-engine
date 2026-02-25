@@ -24,7 +24,9 @@ import {
   upsertStorefront,
   upsertWord,
   upsertKeyword,
+  upsertApp,
   insertPopularity,
+  insertAppRankings,
 } from "./db.js";
 
 // ── Concurrency limiter (avoids adding p-limit dependency) ───────────────────
@@ -176,7 +178,7 @@ async function checkRank(pair, appleId, store, platform) {
 
 // ── Stage 4: Enrich ranking pairs with popularity + competitiveness ──────────
 
-async function enrichPair(item, pg, redis, store, platform) {
+async function enrichPair(item, pg, redis, store, platform, appleId, appMeta) {
   const normKeyword = item.keyword.toLowerCase().trim();
 
   let popularity = null;
@@ -225,14 +227,24 @@ async function enrichPair(item, pg, redis, store, platform) {
   // Lightweight fire-and-forget persistence
   (async () => {
     try {
-      const [storefront, word] = await Promise.all([
+      const [storefront, word, appRow] = await Promise.all([
         upsertStorefront(pg, store),
         upsertWord(pg, normKeyword),
+        upsertApp(pg, {
+          appleId,
+          bundleId: appMeta.bundleId || null,
+          name: appMeta.name,
+          developer: appMeta.developer,
+          price: appMeta.price,
+          genre: appMeta.genre,
+          iconUrl: appMeta.iconUrl,
+        }),
       ]);
       const kwRow = await upsertKeyword(pg, word.id, storefront.id, platform);
       if (popularity !== null) {
         await insertPopularity(pg, kwRow.id, popularity);
       }
+      await insertAppRankings(pg, kwRow.id, null, [{ appDbId: appRow.id, rank: item.rank }]);
     } catch {
       // Non-fatal
     }
@@ -301,17 +313,42 @@ export async function discoverKeywords(pg, redis, appleId, { store = "us", platf
 
   const enriched = await Promise.all(
     rankingPairs.slice(0, topN).map((item) =>
-      enrichLimit(() => enrichPair(item, pg, redis, store, platform))
+      enrichLimit(() => enrichPair(item, pg, redis, store, platform, appleId, appMeta))
     )
   );
 
-  // Append the remaining pairs without enrichment
+  // Append the remaining pairs without enrichment, persist their ranks
   const unenriched = rankingPairs.slice(topN).map((item) => ({
     keyword: item.keyword,
     rank: item.rank,
     popularity: null,
     competitiveness: null,
   }));
+
+  // Fire-and-forget: persist rankings for unenriched pairs
+  (async () => {
+    try {
+      const [storefront, appRow] = await Promise.all([
+        upsertStorefront(pg, store),
+        upsertApp(pg, {
+          appleId,
+          bundleId: appMeta.bundleId || null,
+          name: appMeta.name,
+          developer: appMeta.developer,
+          price: appMeta.price,
+          genre: appMeta.genre,
+          iconUrl: appMeta.iconUrl,
+        }),
+      ]);
+      for (const item of rankingPairs.slice(topN)) {
+        const word = await upsertWord(pg, item.keyword.toLowerCase().trim());
+        const kwRow = await upsertKeyword(pg, word.id, storefront.id, platform);
+        await insertAppRankings(pg, kwRow.id, null, [{ appDbId: appRow.id, rank: item.rank }]);
+      }
+    } catch {
+      // Non-fatal
+    }
+  })();
 
   timings.stage4_enrich_ms = Date.now() - t;
   timings.total_ms = Date.now() - totalStart;
