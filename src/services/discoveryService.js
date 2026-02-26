@@ -71,17 +71,17 @@ async function extractTokens(appMeta, redis) {
   const genAI = new GoogleGenerativeAI(config.geminiApiKey);
   const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-  const descriptionSnippet = appMeta.description?.slice(0, 500) ?? "N/A";
+  const descriptionSnippet = appMeta.description?.slice(0, 1000) ?? "N/A";
 
   const prompt = `You are an App Store Optimization expert. Analyze this iOS app's metadata and extract important single-word keyword tokens.
 
 App Name: ${appMeta.name}
 App Subtitle: ${appMeta.subtitle ?? "N/A"}
-App Description (first 500 chars): ${descriptionSnippet}
+App Description (first 1000 chars): ${descriptionSnippet}
 Genre: ${appMeta.genre ?? "N/A"}
 
 Instructions:
-1. Extract 15-25 unique, important single-word tokens. The app name and subtitle are highest priority; the description is secondary.
+1. Extract 30-50 unique, important single-word tokens. The app name and subtitle are highest priority; the description is secondary.
 2. Exclude: the app's unique brand or product name, common stop words (the, a, an, is, for, with, and, or, to, in, on, of, my, your, this, that, it, app, by, at, be, do, go, get), and single characters.
 3. All tokens must be lowercase.
 4. For each token, provide 2-3 single-word synonyms that real users might search for instead. Synonyms must be real English words relevant to the app's context.

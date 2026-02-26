@@ -514,16 +514,21 @@ export async function getRankNeighborsBulk(pg, keywordIds, snapshotIds, ranks) {
        SELECT unnest($1::bigint[])   AS keyword_id,
               unnest($2::bigint[])   AS snapshot_id,
               unnest($3::smallint[]) AS rank
+     ),
+     neighbors AS (
+       SELECT DISTINCT ON (i.keyword_id, i.rank, ar.rank)
+              i.keyword_id, i.rank AS original_rank,
+              ar.rank AS neighbor_rank, ar.app_id
+       FROM input i
+       JOIN app_rankings ar
+         ON ar.keyword_id = i.keyword_id
+        AND ar.rank IN (i.rank - 1, i.rank + 1)
+       ORDER BY i.keyword_id, i.rank, ar.rank, ar.ranked_at DESC
      )
-     SELECT i.keyword_id, i.rank AS original_rank,
-            ar.rank AS neighbor_rank,
+     SELECT n.keyword_id, n.original_rank, n.neighbor_rank,
             a.apple_id, a.name, a.developer, a.genre, a.icon_url
-     FROM input i
-     JOIN app_rankings ar
-       ON ar.keyword_id = i.keyword_id
-      AND ar.search_snapshot_id = i.snapshot_id
-      AND ar.rank IN (i.rank - 1, i.rank + 1)
-     JOIN apps a ON a.id = ar.app_id`,
+     FROM neighbors n
+     JOIN apps a ON a.id = n.app_id`,
     [keywordIds, snapshotIds, ranks]
   );
   return rows;

@@ -36,8 +36,8 @@ export const config = {
   // Discovery engine
   discoverySearchConcurrency:     ttl(process.env.DISCOVERY_SEARCH_CONCURRENCY, 20),
   discoveryPopularityConcurrency: ttl(process.env.DISCOVERY_POPULARITY_CONCURRENCY, 5),
-  discoveryMaxTerms:              ttl(process.env.DISCOVERY_MAX_TERMS, 40),
-  discoveryMaxPairs:              ttl(process.env.DISCOVERY_MAX_PAIRS, 2000),
+  discoveryMaxTerms:              ttl(process.env.DISCOVERY_MAX_TERMS, 60),
+  discoveryMaxPairs:              ttl(process.env.DISCOVERY_MAX_PAIRS, 4000),
   discoverySearchTimeoutMs:       ttl(process.env.DISCOVERY_SEARCH_TIMEOUT_MS, 10000),
   discoveryTopNEnrich:            ttl(process.env.DISCOVERY_TOP_N_ENRICH, 20),
   cacheTtlDiscovery:              ttl(process.env.CACHE_TTL_DISCOVERY, 3600),
