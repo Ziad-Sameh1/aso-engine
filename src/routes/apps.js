@@ -445,7 +445,7 @@ export async function appsRoutes(fastify) {
           .code(404)
           .send({ error: "Could not resolve keyword after search." });
 
-      const [
+      let [
         app,
         rankRow,
         popularityRow,
@@ -464,6 +464,19 @@ export async function appsRoutes(fastify) {
           appleAdsAdamId: config.appleAdsAdamId,
         }),
       ]);
+
+      // If no rank in DB, the cached search may be stale — force a fresh
+      // search to update app_rankings, then re-query.
+      if (!rankRow) {
+        await runSearch(fastify.pg, fastify.redis, {
+          keyword,
+          store,
+          platform,
+          limit: 100,
+          skipCache: true,
+        });
+        rankRow = await getAppCurrentRank(fastify.pg, appleId, kw.id);
+      }
 
       if (!app) return reply.code(404).send({ error: "App not found." });
 
@@ -486,7 +499,10 @@ export async function appsRoutes(fastify) {
         popularityBreakdown: popularityResult?.breakdown ?? null,
       };
 
-      await cache.set(cacheKey, result, config.cacheTtlRank);
+      // Only cache when we have a rank — avoids persisting stale null results.
+      if (result.rank !== null) {
+        await cache.set(cacheKey, result, config.cacheTtlRank);
+      }
       return { ...result, cached: false };
     }
   );
@@ -566,13 +582,26 @@ export async function appsRoutes(fastify) {
             );
             if (!kw) return { keyword, error: "Could not resolve keyword." };
 
+            let rankRow = await getAppCurrentRank(fastify.pg, appleId, kw.id);
+
+            // If no rank in DB, the cached search may be stale — force a fresh
+            // search to update app_rankings, then re-query.
+            if (!rankRow) {
+              await runSearch(fastify.pg, fastify.redis, {
+                keyword,
+                store,
+                platform,
+                limit: 100,
+                skipCache: true,
+              });
+              rankRow = await getAppCurrentRank(fastify.pg, appleId, kw.id);
+            }
+
             const [
-              rankRow,
               popularityRow,
               competitivenessRow,
               popularityResult,
             ] = await Promise.all([
-              getAppCurrentRank(fastify.pg, appleId, kw.id),
               getKeywordCurrentPopularity(fastify.pg, kw.id),
               getKeywordCurrentCompetitiveness(fastify.pg, kw.id),
               calculatePopularity(normKeyword, store, platform, {
@@ -593,7 +622,10 @@ export async function appsRoutes(fastify) {
               popularityBreakdown: popularityResult?.breakdown ?? null,
             };
 
-            await cache.set(cacheKey, result, config.cacheTtlRank);
+            // Only cache when we have a rank — avoids persisting stale null results.
+            if (result.rank !== null) {
+              await cache.set(cacheKey, result, config.cacheTtlRank);
+            }
             return { ...result, cached: false };
           } catch (err) {
             return { keyword, error: err.message };
