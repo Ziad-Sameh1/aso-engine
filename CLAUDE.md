@@ -36,9 +36,8 @@ curl http://localhost:3000/api/health
 
 ### Infrastructure
 
-- **BullMQ** and **node-cron** are installed but not yet wired up — intended for background job scheduling (ranking updates, etc.)
 - **PostgreSQL** and **Redis** are hosted externally (Coolify). Connection strings come from env vars.
-- **`migrations/`**: Directory exists but is empty — schema migrations go here.
+- **`migrations/`**: SQL migration files (001–004) defining storefronts, words, keywords, apps, search_snapshots, app_rankings, app_ratings, keyword_popularity, keyword_competitiveness tables.
 
 ### Python Scraper (`appstore_search_rankings.py`)
 
@@ -65,3 +64,23 @@ docker run -p 3000:3000 -e DATABASE_URL="..." -e REDIS_URL="..." aso-engine
 ```
 
 Health check is built into the Dockerfile: `GET /api/health` must return 200.
+
+### Workers (`src/workers/`)
+
+BullMQ workers with node-cron scheduling:
+- **Keyword Rankings Worker** (hourly): Refreshes rankings for all tracked keywords via `runSearch()` with `skipCache: true`
+- **App Ratings Worker** (daily 03:00 UTC): Fetches fresh ratings for tracked apps, inserts if changed, busts cache
+- **Popularity Worker** (daily 04:00 UTC): Updates popularity scores for top N most-demanded keywords
+
+Workers run sequentially (concurrency: 1) with configurable delays between items to respect Apple rate limits.
+
+### Key Services (`src/services/`)
+
+- **`searchService.js`**: Central orchestrator — scrapes App Store, upserts DB records, calculates popularity/competitiveness, caches response
+- **`appstore.js`**: Apple App Store HTML scraping + iTunes Lookup API batching (150 IDs/batch, 500ms delay)
+- **`popularity.js`**: Scores keywords 5-100 using prefix depth in Apple Suggest (80%), position (15%), and Apple Ads bonus (+5)
+- **`competitiveness.js`**: Scores keywords 5-100 from top-10 apps' review counts (70%), ratings (20%), result density (10%)
+- **`suggestionService.js`**: Gemini Flash 2.5 generates 20 three-word keywords → parallel search → return with metrics
+- **`discoveryService.js`**: Token extraction + 2-word permutation testing to find keywords an app actually ranks for
+- **`db.js`**: All PostgreSQL queries; uses LATERAL joins for efficient "latest N per group" queries and `unnest()` for bulk inserts
+- **`cache.js`**: Redis wrapper with `get`/`set`/`invalidate(pattern)`

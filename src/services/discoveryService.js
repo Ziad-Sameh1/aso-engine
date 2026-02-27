@@ -14,7 +14,12 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { CacheService } from "./cache.js";
 import { config } from "../config/index.js";
-import { fetchAppMetadata, fetchSearchHtml, extractSearchResults, lookupAppMetadata } from "./appstore.js";
+import {
+  fetchAppMetadata,
+  fetchSearchHtmlViaProxy,
+  extractSearchResults,
+  lookupAppMetadata,
+} from "./appstore.js";
 import { calculatePopularity } from "./popularity.js";
 import { calculateCompetitiveness } from "./competitiveness.js";
 import {
@@ -66,7 +71,8 @@ async function extractTokens(appMeta, redis) {
   const cached = await cache.get(cacheKey);
   if (cached) return cached;
 
-  if (!config.geminiApiKey) throw new Error("GEMINI_API_KEY is not configured.");
+  if (!config.geminiApiKey)
+    throw new Error("GEMINI_API_KEY is not configured.");
 
   const genAI = new GoogleGenerativeAI(config.geminiApiKey);
   const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
@@ -96,7 +102,10 @@ Return ONLY a JSON object in this exact format, nothing else. No markdown, no ex
 
   const result = await model.generateContent(prompt);
   const text = result.response.text().trim();
-  const json = text.replace(/^```(?:json)?\n?/, "").replace(/\n?```$/, "").trim();
+  const json = text
+    .replace(/^```(?:json)?\n?/, "")
+    .replace(/\n?```$/, "")
+    .trim();
 
   let parsed;
   try {
@@ -121,7 +130,9 @@ Return ONLY a JSON object in this exact format, nothing else. No markdown, no ex
   const allTerms = [];
 
   for (const entry of parsed.tokens) {
-    const word = String(entry.word ?? "").toLowerCase().trim();
+    const word = String(entry.word ?? "")
+      .toLowerCase()
+      .trim();
     if (word && !seen.has(word)) {
       seen.add(word);
       allTerms.push(word);
@@ -163,20 +174,124 @@ function generatePairs(terms, maxPairs) {
 
 // ── Stage 3: Lightweight Apple rank check ───────────────────────────────────
 
-async function checkRank(pair, appleId, store, platform) {
-  try {
-    const signal = AbortSignal.timeout(config.discoverySearchTimeoutMs);
-    const html = await fetchSearchHtml(pair, store, platform, { signal });
-    const results = extractSearchResults(html);
-    const match = results.find((r) => r.id === String(appleId));
-    if (!match) return null;
-    // Carry top-10 IDs so Stage 4 can compute competitiveness without re-fetching
-    const top10Ids = results.slice(0, 10).map((r) => r.id);
-    // Carry full results so persistence can create a snapshot with all ranked apps
-    return { keyword: pair, rank: match.rank, totalResults: results.length, top10Ids, searchResults: results };
-  } catch {
-    return null;
+function categorizeError(err) {
+  const msg = err.message || String(err);
+  if (
+    err.name === "TimeoutError" ||
+    msg.includes("timed out") ||
+    msg.includes("abort")
+  )
+    return "timeout";
+  if (msg.includes("HTTP 429")) return "http_429";
+  if (msg.includes("HTTP 4"))
+    return msg.includes("403") ? "http_403" : "http_4xx";
+  if (msg.includes("HTTP 5")) return "http_5xx";
+  if (
+    msg.includes("fetch failed") ||
+    msg.includes("ECONNRESET") ||
+    msg.includes("ENOTFOUND")
+  )
+    return "network";
+  if (msg.includes("serialized-server-data") || msg.includes("JSON"))
+    return "parse";
+  return "unknown";
+}
+
+function sleep(ms) {
+  return ms > 0 ? new Promise((resolve) => setTimeout(resolve, ms)) : Promise.resolve();
+}
+
+function isHttp429(err) {
+  const msg = err?.message || String(err);
+  return msg.includes("HTTP 429");
+}
+
+function jitter(maxMs) {
+  if (!maxMs || maxMs <= 0) return 0;
+  return Math.floor(Math.random() * maxMs);
+}
+
+async function waitForNextSlot(rateState, baseDelayMs) {
+  if (!rateState) {
+    await sleep(baseDelayMs + jitter(config.discoverySearchJitterMs));
+    return;
   }
+
+  const now = Date.now();
+  const waitMs = Math.max(0, rateState.nextAllowedAt - now);
+  if (waitMs > 0) await sleep(waitMs);
+
+  const spacingMs = baseDelayMs + jitter(config.discoverySearchJitterMs);
+  rateState.nextAllowedAt = Date.now() + spacingMs;
+}
+
+async function checkRank(pair, appleId, store, platform, rateState) {
+  const maxRetries = Math.max(0, config.discovery429MaxRetries);
+  const baseBackoffMs = Math.max(0, config.discovery429BaseBackoffMs);
+  const maxBackoffMs = Math.max(baseBackoffMs, config.discovery429MaxBackoffMs);
+  const baseDelayMs = Math.max(0, config.discoverySearchDelayMs);
+
+  for (let attempt = 0; attempt <= maxRetries; attempt++) {
+    await waitForNextSlot(rateState, baseDelayMs);
+
+    try {
+      const html = await fetchSearchHtmlViaProxy(pair, store, platform);
+      const results = extractSearchResults(html);
+      const match = results.find((r) => r.id === String(appleId));
+      if (!match) {
+        if (rateState) rateState.consecutive429 = 0;
+        return { status: "not_found", keyword: pair };
+      }
+      // Carry top-10 IDs so Stage 4 can compute competitiveness without re-fetching
+      const top10Ids = results.slice(0, 10).map((r) => r.id);
+      console.log(`[discovery] Found ${match.rank} rank for ${pair}`);
+      if (rateState) rateState.consecutive429 = 0;
+      // Carry full results so persistence can create a snapshot with all ranked apps
+      return {
+        status: "found",
+        keyword: pair,
+        rank: match.rank,
+        totalResults: results.length,
+        top10Ids,
+        searchResults: results,
+      };
+    } catch (err) {
+      if (isHttp429(err) && attempt < maxRetries) {
+        const streak = (rateState?.consecutive429 ?? 0) + 1;
+        const backoffMs = Math.min(
+          maxBackoffMs,
+          baseBackoffMs * 2 ** Math.max(0, streak - 1),
+        );
+        const cooldownMs = backoffMs + jitter(config.discoverySearchJitterMs);
+
+        if (rateState) {
+          rateState.consecutive429 = streak;
+          rateState.nextAllowedAt = Date.now() + cooldownMs;
+        }
+
+        console.warn(
+          `[discovery] 429 for "${pair}" (attempt ${attempt + 1}/${maxRetries + 1}) -> retrying in ${cooldownMs}ms`,
+        );
+        continue;
+      }
+
+      console.error(`[discovery] Error checking rank for ${pair}: ${err.message}`);
+      const category = categorizeError(err);
+      return {
+        status: "failed",
+        keyword: pair,
+        error: err.message || String(err),
+        category,
+      };
+    }
+  }
+
+  return {
+    status: "failed",
+    keyword: pair,
+    error: "Exhausted retry attempts.",
+    category: "http_429",
+  };
 }
 
 // ── Stage 4: Enrich ranking pairs with popularity + competitiveness ──────────
@@ -201,13 +316,18 @@ async function enrichPair(item, pg, redis, store, platform, appleId, appMeta) {
   // Calculate fresh popularity if not in DB
   if (popularity === null) {
     try {
-      const popResult = await calculatePopularity(normKeyword, store, platform, {
-        redis,
-        mediaApiToken: config.appleMediaApiToken,
-        appleAdsCookie: config.appleAdsCookie,
-        appleAdsXsrfToken: config.appleAdsXsrfToken,
-        appleAdsAdamId: config.appleAdsAdamId,
-      });
+      const popResult = await calculatePopularity(
+        normKeyword,
+        store,
+        platform,
+        {
+          redis,
+          mediaApiToken: config.appleMediaApiToken,
+          appleAdsCookie: config.appleAdsCookie,
+          appleAdsXsrfToken: config.appleAdsXsrfToken,
+          appleAdsAdamId: config.appleAdsAdamId,
+        },
+      );
       popularity = popResult?.score ?? null;
     } catch {
       // Non-fatal — leave as null
@@ -257,7 +377,7 @@ async function enrichPair(item, pg, redis, store, platform, appleId, appMeta) {
         pg,
         kwRow.id,
         item.searchResults.length,
-        item.searchResults
+        item.searchResults,
       );
       await insertAppRankings(
         pg,
@@ -265,7 +385,7 @@ async function enrichPair(item, pg, redis, store, platform, appleId, appMeta) {
         snapshot.id,
         item.searchResults
           .filter((r) => appIdMap.has(r.id))
-          .map((r) => ({ appDbId: appIdMap.get(r.id), rank: r.rank }))
+          .map((r) => ({ appDbId: appIdMap.get(r.id), rank: r.rank })),
       );
     } catch {
       // Non-fatal
@@ -293,7 +413,12 @@ async function enrichPair(item, pg, redis, store, platform, appleId, appMeta) {
  * @param {string} [opts.platform="iphone"]
  * @returns {Promise<object>}
  */
-export async function discoverKeywords(pg, redis, appleId, { store = "us", platform = "iphone" } = {}) {
+export async function discoverKeywords(
+  pg,
+  redis,
+  appleId,
+  { store = "us", platform = "iphone" } = {},
+) {
   const totalStart = Date.now();
   const timings = {};
 
@@ -305,6 +430,9 @@ export async function discoverKeywords(pg, redis, appleId, { store = "us", platf
   appMeta.appleId = appleId;
 
   const tokenData = await extractTokens(appMeta, redis);
+  console.log(`[discovery] Extracted ${tokenData.tokensExtracted} tokens`);
+  console.log(`[discovery] Extracted ${tokenData.synonymsGenerated} synonyms`);
+  console.log(`[discovery] Extracted ${tokenData.uniqueTerms.length} unique terms`);
   timings.stage1_gemini_ms = Date.now() - t;
 
   const { uniqueTerms, tokensExtracted, synonymsGenerated } = tokenData;
@@ -313,18 +441,63 @@ export async function discoverKeywords(pg, redis, appleId, { store = "us", platf
   t = Date.now();
   const pairs = generatePairs(uniqueTerms, config.discoveryMaxPairs);
   timings.stage2_permutations_ms = Date.now() - t;
+  console.log(`[discovery] Generated ${pairs.length} 2-word permutations`);
 
   // ── Stage 3: Parallel lightweight Apple rank-check ───────────────────────
   t = Date.now();
   const searchLimit = createLimiter(config.discoverySearchConcurrency);
+  const rateState = { nextAllowedAt: Date.now(), consecutive429: 0 };
 
   const rankResults = await Promise.all(
-    pairs.map((pair) => searchLimit(() => checkRank(pair, appleId, store, platform)))
+    pairs.map((pair) =>
+      searchLimit(() => checkRank(pair, appleId, store, platform, rateState)),
+    ),
   );
 
-  const rankingPairs = rankResults
-    .filter(Boolean)
-    .sort((a, b) => a.rank - b.rank);
+  // Categorize results by status
+  const found = [];
+  const notFound = [];
+  const failed = [];
+  for (const r of rankResults) {
+    if (!r) continue; // shouldn't happen now, but defensive
+    if (r.status === "found") found.push(r);
+    else if (r.status === "failed") failed.push(r);
+    else notFound.push(r);
+  }
+
+  // Log failure breakdown for debugging
+  if (failed.length > 0) {
+    // Group by error category
+    const byCat = {};
+    for (const f of failed) {
+      byCat[f.category] = (byCat[f.category] || 0) + 1;
+    }
+    const breakdown = Object.entries(byCat)
+      .sort((a, b) => b[1] - a[1])
+      .map(([cat, count]) => `${cat}=${count}`)
+      .join(", ");
+
+    // Sample one error per category for actual error messages
+    const seenCats = new Set();
+    const samples = [];
+    for (const f of failed) {
+      if (!seenCats.has(f.category)) {
+        seenCats.add(f.category);
+        samples.push(`[${f.category}] "${f.keyword}": ${f.error}`);
+      }
+      if (seenCats.size >= 6) break;
+    }
+
+    console.log(
+      `[discovery] Stage 3 summary: ${found.length} found | ${notFound.length} not_found | ${failed.length} failed (of ${rankResults.length} total)`,
+    );
+    console.log(`[discovery] Stage 3 failure breakdown: ${breakdown}`);
+    console.log(
+      `[discovery] Stage 3 error samples:\n  ${samples.join("\n  ")}`,
+    );
+  }
+
+  const rankingPairs = found.sort((a, b) => a.rank - b.rank);
 
   timings.stage3_search_ms = Date.now() - t;
 
@@ -334,9 +507,13 @@ export async function discoverKeywords(pg, redis, appleId, { store = "us", platf
   const enrichLimit = createLimiter(config.discoveryPopularityConcurrency);
 
   const enriched = await Promise.all(
-    rankingPairs.slice(0, topN).map((item) =>
-      enrichLimit(() => enrichPair(item, pg, redis, store, platform, appleId, appMeta))
-    )
+    rankingPairs
+      .slice(0, topN)
+      .map((item) =>
+        enrichLimit(() =>
+          enrichPair(item, pg, redis, store, platform, appleId, appMeta),
+        ),
+      ),
   );
 
   // Append the remaining pairs without enrichment, persist their ranks
@@ -370,7 +547,7 @@ export async function discoverKeywords(pg, redis, appleId, { store = "us", platf
           pg,
           kwRow.id,
           item.searchResults.length,
-          item.searchResults
+          item.searchResults,
         );
         await insertAppRankings(
           pg,
@@ -378,7 +555,7 @@ export async function discoverKeywords(pg, redis, appleId, { store = "us", platf
           snapshot.id,
           item.searchResults
             .filter((r) => appIdMap.has(r.id))
-            .map((r) => ({ appDbId: appIdMap.get(r.id), rank: r.rank }))
+            .map((r) => ({ appDbId: appIdMap.get(r.id), rank: r.rank })),
         );
       }
     } catch {
@@ -391,17 +568,33 @@ export async function discoverKeywords(pg, redis, appleId, { store = "us", platf
 
   return {
     app: {
-      name:      appMeta.name,
-      subtitle:  appMeta.subtitle  ?? null,
+      name: appMeta.name,
+      subtitle: appMeta.subtitle ?? null,
       developer: appMeta.developer ?? null,
-      genre:     appMeta.genre     ?? null,
+      genre: appMeta.genre ?? null,
     },
     stats: {
       tokensExtracted,
       synonymsGenerated,
-      uniqueTerms:   uniqueTerms.length,
+      uniqueTerms: uniqueTerms.length,
       pairsGenerated: pairs.length,
-      pairsRanking:  rankingPairs.length,
+      pairsRanking: rankingPairs.length,
+      pairsNotFound: notFound.length,
+      pairsFailed: failed.length,
+      failureBreakdown:
+        failed.length > 0
+          ? Object.entries(
+              failed.reduce((acc, f) => {
+                acc[f.category] = (acc[f.category] || 0) + 1;
+                return acc;
+              }, {}),
+            )
+              .sort((a, b) => b[1] - a[1])
+              .reduce((obj, [k, v]) => {
+                obj[k] = v;
+                return obj;
+              }, {})
+          : null,
     },
     timings,
     results: [...enriched, ...unenriched],

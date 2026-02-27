@@ -32,6 +32,7 @@ import { keywordsRoutes } from "./routes/keywords.js";
 import { keywordTrackingRoutes } from "./routes/keywordTracking.js";
 import { appTrackingRoutes } from "./routes/appTracking.js";
 import adminRoutes from "./routes/admin.js";
+import { proxyRoutes } from "./routes/proxy.js";
 import { initWorkers } from "./workers/index.js";
 
 const app = Fastify({
@@ -54,6 +55,7 @@ await app.register(keywordsRoutes);
 await app.register(keywordTrackingRoutes);
 await app.register(appTrackingRoutes);
 await app.register(adminRoutes);
+await app.register(proxyRoutes);
 
 app.get("/", async function (request, reply) {
   return { message: "Welcome to the ASO Engine :D" };
