@@ -1,12 +1,14 @@
 import { CacheService } from "../services/cache.js";
 import { config } from "../config/index.js";
 import { runSearch } from "../services/searchService.js";
+import { calculatePopularity } from "../services/popularity.js";
 import {
   resolveKeyword,
   getKeywordCurrentPopularity,
   getKeywordPopularityHistory,
   getKeywordCurrentCompetitiveness,
   getKeywordCompetitivenessHistory,
+  insertPopularity,
   incrementKeywordDemand,
   periodToDate,
   VALID_PERIODS,
@@ -100,31 +102,59 @@ export async function keywordsRoutes(fastify) {
         "[GET /api/keywords/popularity] keyword resolved"
       );
 
-      const row = await getKeywordCurrentPopularity(fastify.pg, kw.id);
-      if (!row) {
+      // Calculate live popularity score
+      let popularity = null;
+      let breakdown = null;
+      const popResult = await calculatePopularity(normKeyword, store, platform, {
+        redis: fastify.redis,
+        mediaApiToken: config.appleMediaApiToken,
+        appleAdsCookie: config.appleAdsCookie,
+        appleAdsXsrfToken: config.appleAdsXsrfToken,
+        appleAdsAdamId: config.appleAdsAdamId,
+      });
+
+      if (popResult?.score != null) {
+        popularity = popResult.score;
+        breakdown = popResult.breakdown ?? null;
+        // Persist fresh score to DB (fire-and-forget)
+        insertPopularity(fastify.pg, kw.id, popularity).catch(() => {});
+        fastify.log.debug(
+          { keywordId: kw.id, popularity },
+          "[GET /api/keywords/popularity] live score calculated"
+        );
+      } else {
+        // Fall back to last known DB value
+        const row = await getKeywordCurrentPopularity(fastify.pg, kw.id);
+        if (row) {
+          popularity = row.popularity;
+          fastify.log.debug(
+            { keywordId: kw.id, popularity },
+            "[GET /api/keywords/popularity] using DB fallback"
+          );
+        }
+      }
+
+      if (popularity == null) {
         fastify.log.warn(
           { keywordId: kw.id, keyword: normKeyword },
-          "[GET /api/keywords/popularity] no popularity data in DB"
+          "[GET /api/keywords/popularity] no popularity data available"
         );
         return reply.code(404).send({ error: "No popularity data found." });
       }
-      fastify.log.debug(
-        { keywordId: kw.id, popularity: row.popularity },
-        "[GET /api/keywords/popularity] popularity data found in DB"
-      );
 
       const result = {
         keyword,
         store,
         platform,
-        popularity: row.popularity,
-        fetchedAt: row.fetched_at,
+        popularity,
+        breakdown,
+        fetchedAt: new Date().toISOString(),
       };
       if (config.cacheTtlPopularity > 0) {
         await cache.set(cacheKey, result, config.cacheTtlPopularity);
       }
       fastify.log.info(
-        { keyword: normKeyword, popularity: row.popularity, keywordId: kw.id },
+        { keyword: normKeyword, popularity, keywordId: kw.id },
         "[GET /api/keywords/popularity] success"
       );
       return { ...result, cached: false };

@@ -41,7 +41,7 @@ class RateLimitError extends Error {
  * @param {object} redis       - ioredis client (fastify.redis)
  * @returns {Promise<Array<{term, source, position}>>}
  */
-async function fetchSuggestions(
+export async function fetchSuggestions(
   prefix,
   storefront,
   platform,
@@ -62,7 +62,9 @@ async function fetchSuggestions(
       prefix
     )}&kinds=terms&platform=${platform}&limit=10`;
 
-  const MAX_RETRIES = 3;
+  const MAX_RETRIES = config.suggestMaxRetries ?? 5;
+  const BASE_DELAY_MS = config.suggestBaseDelayMs ?? 1000;
+  const MAX_DELAY_MS = config.suggestMaxDelayMs ?? 30000;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
@@ -80,11 +82,13 @@ async function fetchSuggestions(
         if (attempt === MAX_RETRIES) {
           throw new RateLimitError(prefix);
         }
-        // Respect Retry-After header if present, otherwise exponential backoff
+        // Respect Retry-After header if present, otherwise exponential backoff + jitter
         const retryAfter = response.headers.get("Retry-After");
+        const exponential = BASE_DELAY_MS * Math.pow(2, attempt);
+        const jitter = Math.floor(Math.random() * BASE_DELAY_MS);
         const delayMs = retryAfter
           ? Number(retryAfter) * 1000
-          : 1000 * Math.pow(2, attempt);
+          : Math.min(exponential + jitter, MAX_DELAY_MS);
         console.warn(
           `[popularity] fetchSuggestions 429 for "${prefix}", retry ${attempt + 1}/${MAX_RETRIES} in ${delayMs}ms`
         );
@@ -149,8 +153,15 @@ async function findFirstAppearance(
 
   /**
    * Check whether `norm` appears in suggestions for the given prefix length.
-   * Returns the match metadata if found, null otherwise.
+   * Returns the match metadata (including suggestionCount) if found, null otherwise.
+   *
+   * Two match tiers:
+   *   1. Primary: exact match or suggestion starts with the keyword
+   *   2. Word-boundary: keyword appears as a whole word inside a suggestion
+   *      (e.g. "game" in "pigeon game"). Flagged with `wordBoundary: true`.
    */
+  const wordBoundaryRe = new RegExp(`(?:^|\\s)${norm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:\\s|$)`);
+
   async function check(prefixLen) {
     const prefix = norm.slice(0, prefixLen);
     const suggestions = await fetchSuggestions(
@@ -160,10 +171,17 @@ async function findFirstAppearance(
       mediaApiToken,
       redis
     );
-    const match = suggestions.find(
+    // Primary: exact or starts-with
+    const primary = suggestions.find(
       (s) => s.term === norm || s.term.startsWith(norm)
     );
-    return match ?? null;
+    if (primary) return { ...primary, suggestionCount: suggestions.length, wordBoundary: false };
+
+    // Fallback: keyword as a whole word inside a suggestion
+    const secondary = suggestions.find((s) => wordBoundaryRe.test(s.term));
+    if (secondary) return { ...secondary, suggestionCount: suggestions.length, wordBoundary: true };
+
+    return null;
   }
 
   // Binary search: find the shortest prefix where the keyword appears
@@ -182,7 +200,20 @@ async function findFirstAppearance(
   hi = totalLen - 1;
   while (lo <= hi) {
     const mid = Math.floor((lo + hi) / 2);
-    const match = await check(mid);
+    let match;
+    try {
+      match = await check(mid);
+    } catch (err) {
+      if (err instanceof RateLimitError) {
+        // Rate limited while trying to find an even shorter prefix.
+        // Return the best match we already have rather than discarding it.
+        console.warn(
+          `[popularity] Rate limited at prefix length ${mid} for "${norm}", returning best match so far (prefixLength=${bestMatch.prefixLength})`
+        );
+        break;
+      }
+      throw err;
+    }
     if (match) {
       bestMatch = { ...match, prefixLength: mid };
       hi = mid - 1; // try even shorter
@@ -308,13 +339,15 @@ export async function calculatePopularity(keyword, storefront, platform, deps) {
 
   let prefixScore = 0;
   let positionScore = 0;
+  let appearance = null;
+  let isSparse = false;
 
   try {
     // Signal 1 & 2: prefix depth + position (requires APPLE_MEDIA_API_TOKEN)
     if (mediaApiToken) {
-      let appearance;
+      let _appearance;
       try {
-        appearance = await findFirstAppearance(
+        _appearance = await findFirstAppearance(
           norm,
           storefront,
           platform,
@@ -328,13 +361,13 @@ export async function calculatePopularity(keyword, storefront, platform, deps) {
           console.warn(
             `[popularity] Suggest API rate limited for "${keyword}", falling back to Apple Ads only`
           );
-          appearance = "rate_limited";
+          _appearance = "rate_limited";
         } else {
           throw err;
         }
       }
 
-      if (appearance === "rate_limited") {
+      if (_appearance === "rate_limited") {
         // Fall back to Apple Ads score only, or null if unavailable
         if (appleAdsCookie && appleAdsXsrfToken && appleAdsAdamId) {
           const popMap = await fetchAppleAdsPopularity(
@@ -353,23 +386,46 @@ export async function calculatePopularity(keyword, storefront, platform, deps) {
         return { score: null, breakdown: { rateLimited: true, appleAdsUnavailable: true } };
       }
 
+      appearance = _appearance;
       if (!appearance) return { score: 5, breakdown: { notFoundInSuggest: true } };
 
       const ratio = appearance.prefixLength / totalLen;
-      prefixScore = Math.max(0, Math.min(100, Math.round((1 - ratio) * 100)));
+      // Absolute: each extra char needed costs 15 points (1 char=100, 2=85, 3=70, …)
+      // Ratio: what fraction of the word was needed (favours long phrases)
+      // Take the higher — short words benefit from absolute, long phrases from ratio
+      const ratioScore = Math.round((1 - ratio) * 100);
+      const absoluteScore = Math.max(0, 100 - (appearance.prefixLength - 1) * 15);
+      prefixScore = Math.max(absoluteScore, ratioScore);
+
+      // Word-boundary matches (keyword found inside a suggestion, not as prefix)
+      // are a weaker signal — apply 40% discount
+      if (appearance.wordBoundary) {
+        prefixScore = Math.round(prefixScore * 0.6);
+      }
       positionScore = Math.max(
         0,
         Math.round(100 - (appearance.position - 1) * 15)
       );
+
+      // Density check: if very few suggestions appeared at the matching prefix,
+      // this is likely an app-name auto-completion, not a real search query.
+      // Zero out prefix/position to prevent inflation of brand/unique terms.
+      isSparse = appearance.suggestionCount <= config.popLowDensityThreshold;
+      if (isSparse) {
+        prefixScore = 0;
+        positionScore = 0;
+      }
     } else {
       prefixScore = 50;
       positionScore = 50;
     }
 
     let appleRawScore = 5; // default
+    let appleAdsDataAvailable = false;
+    const hasAppleAds = !!(appleAdsCookie && appleAdsXsrfToken && appleAdsAdamId);
 
     // Signal 4: Apple Ads popularity bonus
-    if (appleAdsCookie && appleAdsXsrfToken && appleAdsAdamId) {
+    if (hasAppleAds) {
       const popMap = await fetchAppleAdsPopularity(
         [keyword],
         storefront,
@@ -378,7 +434,12 @@ export async function calculatePopularity(keyword, storefront, platform, deps) {
         appleAdsAdamId,
         redis
       );
-      appleRawScore = popMap.get(norm) ?? 5;
+      const fetched = popMap.get(norm);
+      if (fetched != null) {
+        appleRawScore = fetched;
+        appleAdsDataAvailable = true;
+      }
+      // If fetched is null, Apple Ads API failed (e.g. 403) — don't use default as signal
     }
 
     // Calculate additive Apple Ads bonus (max +5 points)
@@ -390,14 +451,31 @@ export async function calculatePopularity(keyword, storefront, platform, deps) {
     // Weighted sum: prefix 80%, position 15%, apple ads up to +5
     const weightedSum = prefixScore * 0.8 + positionScore * 0.15 + appleAdd;
 
-    const finalScore = Math.max(5, Math.min(95, Math.round(weightedSum)));
+    // Apple Ads validation gate: only cap when Apple Ads actually returned a score.
+    // If the API failed (403, network error), appleAdsDataAvailable=false and we
+    // must not cap — the default appleRawScore of 5 is not a real signal.
+    const cappedByAppleAds = appleAdsDataAvailable && appleRawScore <= config.popAppleAdsLowThreshold;
+    let finalScore;
+    if (cappedByAppleAds) {
+      finalScore = Math.max(5, Math.min(appleRawScore, Math.round(weightedSum)));
+    } else {
+      finalScore = Math.max(5, Math.min(95, Math.round(weightedSum)));
+    }
+
     return {
       score: finalScore,
       breakdown: {
         prefixScore,
+        prefixAbsoluteScore: appearance ? Math.max(0, 100 - (appearance.prefixLength - 1) * 15) : null,
+        prefixRatioScore: appearance ? Math.round((1 - appearance.prefixLength / totalLen) * 100) : null,
+        prefixLength: appearance?.prefixLength ?? null,
+        wordBoundary: appearance?.wordBoundary ?? false,
         positionScore,
+        suggestionCount: appearance?.suggestionCount ?? null,
+        isSparse,
         appleRawScore,
         appleAdd,
+        cappedByAppleAds,
         weightedSum: Math.round(weightedSum * 10) / 10,
         finalScore,
       },

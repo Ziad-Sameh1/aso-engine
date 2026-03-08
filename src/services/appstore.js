@@ -52,6 +52,20 @@ export async function fetchSearchHtml(
 
 // ── Proxy fetch ──────────────────────────────────────────────────────────────
 
+// Singleton agent — reuses the proxy tunnel connection pool across all requests.
+// Creating a new HttpsProxyAgent per request causes each call to open a fresh
+// CONNECT tunnel, which overwhelms the proxy under concurrent load.
+let _proxyAgent = null;
+function getProxyAgent() {
+  if (!_proxyAgent) {
+    _proxyAgent = new HttpsProxyAgent(config.proxyUrl, {
+      keepAlive: true,
+      maxSockets: config.discoverySearchConcurrency,
+    });
+  }
+  return _proxyAgent;
+}
+
 const PROXY_HEADERS = {
   accept:
     "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
@@ -89,10 +103,9 @@ export async function fetchSearchHtmlViaProxy(term, country = "us", platform = "
   }
 
   console.log(`[appstore] Fetching via proxy: ${url}`);
-  const agent = new HttpsProxyAgent(config.proxyUrl);
 
   const response = await axios.get(url, {
-    httpsAgent: agent,
+    httpsAgent: getProxyAgent(),
     headers: PROXY_HEADERS,
     timeout: 10000,
     responseType: "text",
@@ -280,6 +293,28 @@ export async function scrapeAppPageMetadata(appleId, country = "us") {
   const canonicalMatch = html.match(/<link\s+rel="canonical"\s+href="([^"]+)"/);
   const appStoreUrl = canonicalMatch?.[1] ?? null;
 
+  // --- rating breakdown (histogram bars) ---
+  // Apple renders bars with aria-label="5 star, 90%" (percentage, singular "star")
+  const ratingBreakdown = {};
+  const barRe = /aria-label="(\d) star,\s*([\d.]+)%"/g;
+  let barMatch;
+  while ((barMatch = barRe.exec(html)) !== null) {
+    ratingBreakdown[parseInt(barMatch[1], 10)] = parseFloat(barMatch[2]);
+  }
+  const hasBreakdown = Object.keys(ratingBreakdown).length === 5;
+  const reviewCount = ld.aggregateRating?.reviewCount ?? null;
+
+  let ratingBreakdownFinal = null;
+  if (hasBreakdown) {
+    ratingBreakdownFinal = {};
+    for (const [star, pct] of Object.entries(ratingBreakdown)) {
+      ratingBreakdownFinal[star] = {
+        percentage: pct,
+        count: reviewCount !== null ? Math.round((reviewCount * pct) / 100) : null,
+      };
+    }
+  }
+
   return {
     name: ld.name ?? null,
     subtitle,
@@ -293,10 +328,11 @@ export async function scrapeAppPageMetadata(appleId, country = "us") {
     isFree: ld.offers?.category === "free",
     genre: ld.applicationCategory ?? null,
     rating: ld.aggregateRating?.ratingValue ?? null,
-    reviewCount: ld.aggregateRating?.reviewCount ?? null,
+    reviewCount,
     developer: ld.author?.name ?? null,
     developerUrl: ld.author?.url ?? null,
     appStoreUrl,
+    ratingBreakdown: ratingBreakdownFinal,
   };
 }
 
@@ -342,6 +378,17 @@ export async function fetchAppMetadata(appleId, country = "us") {
     priceCurrency: meta.priceCurrency,
     appStoreUrl: meta.appStoreUrl,
   };
+}
+
+// ── URL parsing ──────────────────────────────────────────────────────────────
+
+/**
+ * Extract the numeric Apple ID from an App Store URL.
+ * e.g. "https://apps.apple.com/us/app/my-app/id123456789" → "123456789"
+ */
+export function parseAppleIdFromUrl(storeUrl) {
+  const match = storeUrl.match(/\/id(\d+)/);
+  return match ? match[1] : null;
 }
 
 // ── Main exports ──────────────────────────────────────────────────────────────

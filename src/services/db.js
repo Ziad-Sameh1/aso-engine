@@ -575,3 +575,69 @@ export function periodToDate(period) {
 }
 
 export const VALID_PERIODS = Object.keys(PERIOD_DAYS);
+
+// ── Cold Email Leads ────────────────────────────────────────────────────────
+
+export async function insertColdEmailLead(pg, data) {
+  const { rows } = await pg.query(
+    `INSERT INTO cold_email_leads
+       (apple_id, store_url, app_name, category, icon_url, seller_email,
+        claim_url, claim_token, claim_expires_at, shiplift_app_id,
+        keywords_discovered, utm_source, utm_campaign)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
+     ON CONFLICT (apple_id) DO UPDATE SET
+       claim_url = EXCLUDED.claim_url,
+       claim_token = EXCLUDED.claim_token,
+       claim_expires_at = EXCLUDED.claim_expires_at,
+       shiplift_app_id = EXCLUDED.shiplift_app_id,
+       keywords_discovered = EXCLUDED.keywords_discovered,
+       app_name = COALESCE(EXCLUDED.app_name, cold_email_leads.app_name),
+       icon_url = COALESCE(EXCLUDED.icon_url, cold_email_leads.icon_url),
+       seller_email = COALESCE(EXCLUDED.seller_email, cold_email_leads.seller_email)
+     RETURNING *`,
+    [
+      data.appleId,
+      data.storeUrl,
+      data.appName ?? null,
+      data.category ?? null,
+      data.iconUrl ?? null,
+      data.sellerEmail ?? null,
+      data.claimUrl,
+      data.claimToken,
+      data.claimExpiresAt,
+      data.shipliftAppId,
+      data.keywordsDiscovered ? JSON.stringify(data.keywordsDiscovered) : null,
+      data.utmSource ?? null,
+      data.utmCampaign ?? null,
+    ]
+  );
+  return rows[0];
+}
+
+export async function getColdEmailLeadByAppleId(pg, appleId) {
+  const { rows } = await pg.query(
+    `SELECT * FROM cold_email_leads WHERE apple_id = $1`,
+    [appleId]
+  );
+  return rows[0] || null;
+}
+
+export async function updateColdEmailLeadStatus(pg, id, status) {
+  const extras = status === "sent" ? ", sent_at = NOW()" : "";
+  const { rows } = await pg.query(
+    `UPDATE cold_email_leads SET status = $2${extras} WHERE id = $1 RETURNING *`,
+    [id, status]
+  );
+  return rows[0] || null;
+}
+
+export async function getPendingColdEmailLeads(pg, limit = 50) {
+  const { rows } = await pg.query(
+    `SELECT * FROM cold_email_leads
+     WHERE status = 'pending'
+     ORDER BY created_at ASC
+     LIMIT $1`,
+    [limit]
+  );
+  return rows;
+}
