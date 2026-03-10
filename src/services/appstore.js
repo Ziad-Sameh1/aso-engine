@@ -8,6 +8,16 @@
  *  3. Resolve names/metadata for deferred IDs via iTunes Lookup API (batched)
  */
 
+function decodeHtmlEntities(str) {
+  return str
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&apos;/g, "'");
+}
+
 import axios from "axios";
 import { HttpsProxyAgent } from "https-proxy-agent";
 import { config } from "../config/index.js";
@@ -17,7 +27,9 @@ const USER_AGENT =
   "AppleWebKit/537.36 (KHTML, like Gecko) " +
   "Chrome/144.0.0.0 Safari/537.36";
 
-const LOOKUP_BATCH_SIZE = 150;
+const LOOKUP_BATCH_SIZE = 200;
+const LOOKUP_CONCURRENCY = 3;
+const LOOKUP_DELAY_MS = 200;
 
 // ── Step 1 ──────────────────────────────────────────────────────────────────
 
@@ -60,7 +72,7 @@ function getProxyAgent() {
   if (!_proxyAgent) {
     _proxyAgent = new HttpsProxyAgent(config.proxyUrl, {
       keepAlive: true,
-      maxSockets: config.discoverySearchConcurrency,
+      maxSockets: config.proxyMaxSockets,
     });
   }
   return _proxyAgent;
@@ -153,10 +165,18 @@ export function extractSearchResults(html) {
       const fields = lockup.impressionMetrics?.fields ?? {};
       const rawId = fields.id ?? "";
       const appId = rawId.includes("::") ? rawId.split("::")[0] : rawId;
+      // Subtitle lives in the display metadata — try known lockup paths
+      const subtitle =
+        lockup.metadata?.subtitle ??
+        lockup.subtitle ??
+        lockup.subtitleText ??
+        fields.subtitle ??
+        null;
       results.push({
         rank: results.length + 1,
         id: appId,
         name: fields.name ?? "",
+        subtitle: subtitle ? decodeHtmlEntities(subtitle) : null,
         bundleId: fields.bundleId ?? "",
         impressionIndex: fields.impressionIndex ?? null,
       });
@@ -184,43 +204,92 @@ export function extractSearchResults(html) {
 
 // ── Step 3 ──────────────────────────────────────────────────────────────────
 
-export async function lookupAppMetadata(appIds, country = "us") {
+export async function lookupAppMetadata(appIds, country = "us", redis = null) {
+  if (appIds.length === 0) return {};
+
   const metadata = {};
+  let uncachedIds = appIds;
 
-  for (let i = 0; i < appIds.length; i += LOOKUP_BATCH_SIZE) {
-    const batch = appIds.slice(i, i + LOOKUP_BATCH_SIZE);
-    const url = `https://itunes.apple.com/lookup?id=${batch.join(",")}&country=${country}`;
-
-    let data;
+  // Check Redis cache first
+  if (redis) {
+    const keys = appIds.map((id) => `itunes:meta:${country}:${id}`);
     try {
-      const response = await fetch(url, {
-        headers: { "User-Agent": USER_AGENT },
-      });
-      data = await response.json();
+      const cached = await redis.mget(...keys);
+      uncachedIds = [];
+      for (let i = 0; i < appIds.length; i++) {
+        if (cached[i]) {
+          try { metadata[appIds[i]] = JSON.parse(cached[i]); } catch {}
+        } else {
+          uncachedIds.push(appIds[i]);
+        }
+      }
+      if (uncachedIds.length < appIds.length) {
+        console.log(`[appstore] iTunes metadata cache: ${appIds.length - uncachedIds.length} hits, ${uncachedIds.length} misses`);
+      }
     } catch (err) {
-      // Non-fatal: skip this batch, names will be empty
-      console.warn(`iTunes Lookup failed for batch ${i}: ${err.message}`);
-      continue;
+      console.warn(`[appstore] Redis MGET failed: ${err.message} — fetching all`);
+      uncachedIds = appIds;
+    }
+  }
+
+  if (uncachedIds.length === 0) return metadata;
+
+  // Build batches
+  const batches = [];
+  for (let i = 0; i < uncachedIds.length; i += LOOKUP_BATCH_SIZE) {
+    batches.push(uncachedIds.slice(i, i + LOOKUP_BATCH_SIZE));
+  }
+
+  // Process batches in concurrent waves (LOOKUP_CONCURRENCY at a time)
+  for (let i = 0; i < batches.length; i += LOOKUP_CONCURRENCY) {
+    const wave = batches.slice(i, i + LOOKUP_CONCURRENCY);
+
+    const waveResults = await Promise.all(
+      wave.map(async (batch) => {
+        const url = `https://itunes.apple.com/lookup?id=${batch.join(",")}&country=${country}`;
+        try {
+          const response = await fetch(url, { headers: { "User-Agent": USER_AGENT } });
+          const data = await response.json();
+          return data.results ?? [];
+        } catch (err) {
+          console.warn(`iTunes Lookup failed for batch: ${err.message}`);
+          return [];
+        }
+      })
+    );
+
+    // Merge results and cache new entries
+    const toCache = {};
+    for (const results of waveResults) {
+      for (const result of results) {
+        const id = String(result.trackId ?? "");
+        if (!id) continue;
+        const entry = {
+          name: result.trackName ?? "",
+          bundleId: result.bundleId ?? "",
+          developer: result.artistName ?? "",
+          price: result.formattedPrice ?? "",
+          genre: result.primaryGenreName ?? "",
+          rating: result.averageUserRating ?? null,
+          ratingCount: result.userRatingCount ?? null,
+          iconUrl: result.artworkUrl512 ?? result.artworkUrl100 ?? null,
+        };
+        metadata[id] = entry;
+        if (redis) toCache[id] = entry;
+      }
     }
 
-    for (const result of data.results ?? []) {
-      const id = String(result.trackId ?? "");
-      if (!id) continue;
-      metadata[id] = {
-        name: result.trackName ?? "",
-        bundleId: result.bundleId ?? "",
-        developer: result.artistName ?? "",
-        price: result.formattedPrice ?? "",
-        genre: result.primaryGenreName ?? "",
-        rating: result.averageUserRating ?? null,
-        ratingCount: result.userRatingCount ?? null,
-        iconUrl: result.artworkUrl512 ?? result.artworkUrl100 ?? null,
-      };
+    if (redis && Object.keys(toCache).length > 0) {
+      const pipeline = redis.pipeline();
+      for (const [id, entry] of Object.entries(toCache)) {
+        pipeline.setex(`itunes:meta:${country}:${id}`, config.cacheTtlItunesMeta, JSON.stringify(entry));
+      }
+      pipeline.exec().catch((err) => console.warn(`[appstore] Redis cache write failed: ${err.message}`));
     }
 
-    // Be nice to Apple's servers between batches
-    if (i + LOOKUP_BATCH_SIZE < appIds.length) {
-      await new Promise((r) => setTimeout(r, 500));
+    // Small delay between waves (not after the last one)
+    if (i + LOOKUP_CONCURRENCY < batches.length) {
+      await new Promise((r) => setTimeout(r, LOOKUP_DELAY_MS));
     }
   }
 
@@ -281,7 +350,9 @@ export async function scrapeAppPageMetadata(appleId, country = "us") {
 
   // --- subtitle (HTML body — not present in JSON-LD) ---
   const subtitleMatch = html.match(/<h2\s+class="subtitle[^"]*">([^<]+)<\/h2>/);
-  const subtitle = subtitleMatch?.[1]?.trim() ?? null;
+  const subtitle = subtitleMatch?.[1]?.trim()
+    ? decodeHtmlEntities(subtitleMatch[1].trim())
+    : null;
 
   // --- og:image (social/share banner, different from icon) ---
   const ogImageMatch = html.match(

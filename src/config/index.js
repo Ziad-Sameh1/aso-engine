@@ -66,6 +66,12 @@ export const config = {
   apiKey: process.env.API_KEY,
   apiKeyPrevious: process.env.API_KEY_PREVIOUS,
   proxyUrl: process.env.PROXY_URL,
+  proxyMaxSockets: ttl(process.env.PROXY_MAX_SOCKETS, 100),
+  // Setup ranking
+  setupRankConcurrency: ttl(process.env.SETUP_RANK_CONCURRENCY, 50),
+  setupMaxPermutations: ttl(process.env.SETUP_MAX_PERMUTATIONS, 800),
+  setupMaxSeedPermutations: ttl(process.env.SETUP_MAX_SEED_PERMUTATIONS, 400),
+  cacheTtlItunesMeta: ttl(process.env.CACHE_TTL_ITUNES_META, 86400), // 24h
   // ShipLift (cold email pipeline)
   shipliftApiUrl: process.env.SHIPLIFT_API_URL,
   shipliftClaimApiKey: process.env.SHIPLIFT_CLAIM_API_KEY,

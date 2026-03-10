@@ -1,96 +1,198 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { fetchSuggestions } from "./popularity.js";
+import axios from "axios";
+import { HttpsProxyAgent } from "https-proxy-agent";
+import { CacheService } from "./cache.js";
 import { config } from "../config/index.js";
 
-const RETRY_BASE_DELAY_MS = 2000;
-const RETRY_MAX_DELAY_MS = 30000;
-const RETRY_MAX_ATTEMPTS = 4;
+const SUGGEST_CONCURRENCY = 50;
+const BACKOFF_BASE_MS = 3000;
+const BACKOFF_MAX_MS = 30000;
+const BACKOFF_MAX_ATTEMPTS = 4;
 
 function sleep(ms) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+// ── Concurrency limiter ─────────────────────────────────────────────────────
+
+function createLimiter(concurrency) {
+  let active = 0;
+  const queue = [];
+
+  function next() {
+    if (active >= concurrency || queue.length === 0) return;
+    active++;
+    const { fn, resolve, reject } = queue.shift();
+    fn()
+      .then(resolve, reject)
+      .finally(() => {
+        active--;
+        next();
+      });
+  }
+
+  return function limit(fn) {
+    return new Promise((resolve, reject) => {
+      queue.push({ fn, resolve, reject });
+      next();
+    });
+  };
+}
+
+// ── Singleton proxy agent for Apple Suggest API ─────────────────────────────
+
+let _suggestProxyAgent = null;
+function getSuggestProxyAgent() {
+  if (!_suggestProxyAgent) {
+    _suggestProxyAgent = new HttpsProxyAgent(config.proxyUrl, {
+      keepAlive: true,
+      maxSockets: SUGGEST_CONCURRENCY,
+    });
+  }
+  return _suggestProxyAgent;
+}
+
+// ── Apple Suggest via proxy ─────────────────────────────────────────────────
+
 /**
- * Fetch Apple Suggest results for a single keyword.
+ * Fetch Apple Suggest results for a single keyword via proxy.
+ * Returns array of { term, position }.
+ * Throws on 429 (caller handles retry). Returns [] on other errors.
  */
-async function fetchTerms(keyword, store, redis) {
+async function fetchSuggestViaProxy(keyword, store, redis) {
   const token = config.appleMediaApiToken;
   if (!token) throw new Error("APPLE_MEDIA_API_TOKEN is not configured.");
 
-  const suggestions = await fetchSuggestions(keyword, store, "iphone", token, redis);
-  return suggestions.map((s) => s.term);
+  // Check cache first
+  const cache = new CacheService(redis);
+  const cacheKey = `suggest:${store}:iphone:${keyword.toLowerCase()}`;
+  if (config.cacheTtlSuggest > 0) {
+    const cached = await cache.get(cacheKey);
+    if (cached) return cached;
+  }
+
+  const url =
+    `https://amp-api-edge.apps.apple.com/v1/catalog/${store}` +
+    `/search/suggestions?term=${encodeURIComponent(keyword)}&kinds=terms&platform=iphone&limit=10`;
+
+  const headers = {
+    Authorization: `Bearer ${token}`,
+    Accept: "application/json",
+    Origin: "https://apps.apple.com",
+    "Accept-Language": "en-US,en;q=0.9",
+    "User-Agent":
+      "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/145.0.0.0 Safari/537.36",
+  };
+
+  const axiosOpts = { headers, timeout: 10000, responseType: "json" };
+  if (config.proxyUrl) {
+    axiosOpts.httpsAgent = getSuggestProxyAgent();
+  }
+
+  const response = await axios.get(url, axiosOpts);
+
+  const all = response.data?.results?.suggestions ?? [];
+  const terms = all.filter((t) => !t.entity && !t.context);
+  const suggestions = terms.map((t, idx) => ({
+    term: (t.displayTerm ?? t.term ?? "").toLowerCase(),
+    position: idx + 1,
+  }));
+
+  if (config.cacheTtlSuggest > 0) {
+    await cache.set(cacheKey, suggestions, config.cacheTtlSuggest);
+  }
+
+  return suggestions;
 }
 
+// ── Fetch level: parallel fetch + backoff retry queue ───────────────────────
+
 /**
- * Fetch Apple Suggest for a list of keywords with parallel execution + retry queue.
+ * Fetch Apple Suggest for a list of keywords.
+ *
+ * Phase 1: All keywords fetched in parallel (concurrency-limited).
+ *          429s and transient errors are collected into a retry queue.
+ * Phase 2: Retry queue processed with exponential backoff (sequential).
+ *
  * Returns a raw tree: Record<keyword, string[]>.
  * `globalSeen` tracks terms already used in prior levels to avoid duplicates.
  */
-async function fetchLevel(keywords, store, redis, globalSeen) {
+export async function fetchLevel(keywords, store, redis, globalSeen) {
   const rawTree = {};
   const retryQueue = [];
+  const limit = createLimiter(SUGGEST_CONCURRENCY);
 
-  function collect(keyword, terms) {
+  function collect(keyword, suggestions) {
+    const terms = suggestions.map((s) => s.term);
     const unique = terms.filter((t) => t !== keyword && !globalSeen.has(t));
     rawTree[keyword] = unique;
     for (const t of unique) globalSeen.add(t);
   }
 
-  // ── Parallel fetch ──────────────────────────────────────────────────────
+  // ── Phase 1: Parallel fetch ───────────────────────────────────────────────
   await Promise.all(
-    keywords.map(async (keyword) => {
-      try {
-        const terms = await fetchTerms(keyword, store, redis);
-        collect(keyword, terms);
-      } catch (err) {
-        if (err.name === "RateLimitError") {
-          retryQueue.push(keyword);
-        } else {
-          console.warn(`[mining] skipping "${keyword}": ${err.message}`);
-          rawTree[keyword] = [];
-        }
-      }
-    })
-  );
-
-  // ── Sequential retry with backoff ───────────────────────────────────────
-  if (retryQueue.length > 0) {
-    console.warn(`[mining] retrying ${retryQueue.length} rate-limited keywords`);
-    let delay = RETRY_BASE_DELAY_MS;
-
-    for (const keyword of retryQueue) {
-      let succeeded = false;
-
-      for (let attempt = 1; attempt <= RETRY_MAX_ATTEMPTS; attempt++) {
-        await sleep(delay);
-        delay = Math.min(delay * 2, RETRY_MAX_DELAY_MS);
-
+    keywords.map((keyword) =>
+      limit(async () => {
         try {
-          const terms = await fetchTerms(keyword, store, redis);
-          collect(keyword, terms);
-          succeeded = true;
-          break;
+          const suggestions = await fetchSuggestViaProxy(keyword, store, redis);
+          collect(keyword, suggestions);
         } catch (err) {
-          if (err.name === "RateLimitError") {
-            console.warn(
-              `[mining] "${keyword}" still rate-limited (attempt ${attempt}/${RETRY_MAX_ATTEMPTS})`
-            );
+          if (err.response?.status === 429 || err.name === "RateLimitError") {
+            retryQueue.push(keyword);
           } else {
-            console.warn(`[mining] "${keyword}" failed: ${err.message}`);
-            break;
+            console.warn(`[mining] skipping "${keyword}": ${err.message}`);
+            rawTree[keyword] = [];
           }
         }
-      }
+      })
+    )
+  );
 
-      if (!succeeded) {
-        console.warn(`[mining] "${keyword}" exhausted retries — skipped`);
-        rawTree[keyword] = [];
-      }
+  // ── Phase 2: Sequential backoff retry queue ───────────────────────────────
+  if (retryQueue.length > 0) {
+    console.warn(`[mining] ${retryQueue.length} keywords hit 429 — retrying with backoff`);
+
+    for (let round = 1; round <= BACKOFF_MAX_ATTEMPTS; round++) {
+      if (retryQueue.length === 0) break;
+
+      const delay = Math.min(BACKOFF_BASE_MS * Math.pow(2, round - 1), BACKOFF_MAX_MS);
+      console.warn(`[mining] backoff round ${round}/${BACKOFF_MAX_ATTEMPTS}: waiting ${delay}ms, ${retryQueue.length} pending`);
+      await sleep(delay);
+
+      // Try all remaining in this round (parallel again)
+      const thisRound = [...retryQueue];
+      retryQueue.length = 0;
+
+      await Promise.all(
+        thisRound.map((keyword) =>
+          limit(async () => {
+            try {
+              const suggestions = await fetchSuggestViaProxy(keyword, store, redis);
+              collect(keyword, suggestions);
+            } catch (err) {
+              if (err.response?.status === 429 || err.name === "RateLimitError") {
+                retryQueue.push(keyword);
+              } else {
+                console.warn(`[mining] "${keyword}" failed on retry: ${err.message}`);
+                rawTree[keyword] = [];
+              }
+            }
+          })
+        )
+      );
+    }
+
+    // Anything still in the queue after all rounds — give up
+    for (const keyword of retryQueue) {
+      console.warn(`[mining] "${keyword}" exhausted retries — skipped`);
+      rawTree[keyword] = [];
     }
   }
 
   return rawTree;
 }
+
+// ── Gemini enrichment ───────────────────────────────────────────────────────
 
 /**
  * Gemini enrichment: filter irrelevant terms + expand with permutations.
@@ -182,7 +284,7 @@ async function applyEnrichment(rawTree, keywords, appMeta, globalSeen) {
  * Run one level of mining: fetch Apple Suggest + optionally Gemini enrich.
  * Returns Record<keyword, string[]>.
  */
-async function mineLevel(keywords, store, redis, appMeta, globalSeen, levelNum) {
+export async function mineLevel(keywords, store, redis, appMeta, globalSeen, levelNum) {
   console.log(`[mining] Level ${levelNum}: fetching suggestions for ${keywords.length} keywords`);
   const raw = await fetchLevel(keywords, store, redis, globalSeen);
 
