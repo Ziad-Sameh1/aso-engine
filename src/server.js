@@ -37,6 +37,8 @@ import { analyzeRoutes } from "./routes/analyze.js";
 import { coldEmailRoutes } from "./routes/coldEmail.js";
 import { setupRoutes } from "./routes/setup.js";
 import { suggestionsRoutes } from "./routes/suggestions.js";
+import { resultsPopularityRoutes } from "./routes/resultsPopularity.js";
+import { resultsDifficultyRoutes } from "./routes/resultsDifficulty.js";
 import { initWorkers } from "./workers/index.js";
 
 const app = Fastify({
@@ -64,6 +66,8 @@ await app.register(analyzeRoutes);
 await app.register(coldEmailRoutes);
 await app.register(setupRoutes);
 await app.register(suggestionsRoutes);
+await app.register(resultsPopularityRoutes);
+await app.register(resultsDifficultyRoutes);
 
 app.get("/", async function (request, reply) {
   return { message: "Welcome to the ASO Engine :D" };

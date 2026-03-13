@@ -68,7 +68,7 @@ export async function fetchSearchHtml(
 // Creating a new HttpsProxyAgent per request causes each call to open a fresh
 // CONNECT tunnel, which overwhelms the proxy under concurrent load.
 let _proxyAgent = null;
-function getProxyAgent() {
+export function getProxyAgent() {
   if (!_proxyAgent) {
     _proxyAgent = new HttpsProxyAgent(config.proxyUrl, {
       keepAlive: true,
@@ -273,6 +273,8 @@ export async function lookupAppMetadata(appIds, country = "us", redis = null) {
           rating: result.averageUserRating ?? null,
           ratingCount: result.userRatingCount ?? null,
           iconUrl: result.artworkUrl512 ?? result.artworkUrl100 ?? null,
+          releaseDate: result.releaseDate ?? null,
+          lastUpdated: result.currentVersionReleaseDate ?? null,
         };
         metadata[id] = entry;
         if (redis) toCache[id] = entry;
@@ -479,8 +481,11 @@ export async function getSearchRankings({
   country = "us",
   platform = "iphone",
   limit = 50,
+  useProxy = false,
 }) {
-  const html = await fetchSearchHtml(keyword, country, platform);
+  const html = useProxy
+    ? await fetchSearchHtmlViaProxy(keyword, country, platform)
+    : await fetchSearchHtml(keyword, country, platform);
   let results = extractSearchResults(html);
   results = results.slice(0, limit);
 
@@ -499,6 +504,8 @@ export async function getSearchRankings({
       result.rating = m.rating;
       result.ratingCount = m.ratingCount;
       result.iconUrl = m.iconUrl;
+      result.releaseDate = m.releaseDate;
+      result.lastUpdated = m.lastUpdated;
     }
   }
 
@@ -550,6 +557,8 @@ export async function getSearchRankingsLite({
       allResults[i].rating = m.rating;
       allResults[i].ratingCount = m.ratingCount;
       allResults[i].iconUrl = m.iconUrl;
+      allResults[i].releaseDate = m.releaseDate;
+      allResults[i].lastUpdated = m.lastUpdated;
     }
   }
 

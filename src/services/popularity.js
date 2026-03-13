@@ -10,6 +10,7 @@
  * aggressively in Redis.
  */
 
+import axios from "axios";
 import { CacheService } from "./cache.js";
 import { config } from "../config/index.js";
 
@@ -46,7 +47,8 @@ export async function fetchSuggestions(
   storefront,
   platform,
   mediaApiToken,
-  redis
+  redis,
+  httpsAgent = null
 ) {
   const cache = new CacheService(redis);
   const cacheKey = `suggest:${storefront}:${platform}:${prefix.toLowerCase()}`;
@@ -62,33 +64,45 @@ export async function fetchSuggestions(
       prefix
     )}&kinds=terms&platform=${platform}&limit=10`;
 
+  const headers = {
+    Authorization: `Bearer ${mediaApiToken}`,
+    "User-Agent": USER_AGENT,
+    Accept: "application/json",
+    Origin: "https://apps.apple.com",
+    "Accept-Language": "en-US,en;q=0.9",
+  };
+
   const MAX_RETRIES = config.suggestMaxRetries ?? 5;
   const BASE_DELAY_MS = config.suggestBaseDelayMs ?? 1000;
   const MAX_DELAY_MS = config.suggestMaxDelayMs ?? 30000;
 
   for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const response = await fetch(url, {
-        headers: {
-          Authorization: `Bearer ${mediaApiToken}`,
-          "User-Agent": USER_AGENT,
-          Accept: "application/json",
-          Origin: "https://apps.apple.com",
-          "Accept-Language": "en-US,en;q=0.9",
-        },
-      });
+      let status, data;
 
-      if (response.status === 429) {
+      if (httpsAgent) {
+        // Route through proxy when an agent is provided
+        const axiosRes = await axios.get(url, {
+          headers,
+          httpsAgent,
+          timeout: 10000,
+          responseType: "json",
+        });
+        status = axiosRes.status;
+        data = axiosRes.data;
+      } else {
+        const fetchRes = await fetch(url, { headers });
+        status = fetchRes.status;
+        data = status < 400 ? await fetchRes.json() : null;
+      }
+
+      if (status === 429) {
         if (attempt === MAX_RETRIES) {
           throw new RateLimitError(prefix);
         }
-        // Respect Retry-After header if present, otherwise exponential backoff + jitter
-        const retryAfter = response.headers.get("Retry-After");
         const exponential = BASE_DELAY_MS * Math.pow(2, attempt);
         const jitter = Math.floor(Math.random() * BASE_DELAY_MS);
-        const delayMs = retryAfter
-          ? Number(retryAfter) * 1000
-          : Math.min(exponential + jitter, MAX_DELAY_MS);
+        const delayMs = Math.min(exponential + jitter, MAX_DELAY_MS);
         console.warn(
           `[popularity] fetchSuggestions 429 for "${prefix}", retry ${attempt + 1}/${MAX_RETRIES} in ${delayMs}ms`
         );
@@ -96,15 +110,14 @@ export async function fetchSuggestions(
         continue;
       }
 
-      if (!response.ok) {
+      if (status >= 400) {
         // Non-429 errors: non-fatal, return empty
         console.warn(
-          `[popularity] fetchSuggestions HTTP ${response.status} for "${prefix}"`
+          `[popularity] fetchSuggestions HTTP ${status} for "${prefix}"`
         );
         return [];
       }
 
-      const data = await response.json();
       // Response shape: { results: { suggestions: [{ displayTerm, kind, source }, ...] } }
       // Filter to keyword-only suggestions (exclude app/editorial/developer entries
       // which have an "entity" or "context" field — they skew position counts)
@@ -144,7 +157,8 @@ async function findFirstAppearance(
   storefront,
   platform,
   mediaApiToken,
-  redis
+  redis,
+  httpsAgent = null
 ) {
   const norm = keyword.toLowerCase().trim();
   const totalLen = norm.length;
@@ -155,12 +169,15 @@ async function findFirstAppearance(
    * Check whether `norm` appears in suggestions for the given prefix length.
    * Returns the match metadata (including suggestionCount) if found, null otherwise.
    *
-   * Two match tiers:
+   * Three match tiers:
    *   1. Primary: exact match or suggestion starts with the keyword
-   *   2. Word-boundary: keyword appears as a whole word inside a suggestion
+   *   2. Stem: keyword and a suggestion share ≥80% common prefix
+   *      (e.g. "subscriptions" ↔ "subscription manager"). Flagged with `stemMatch: true`.
+   *   3. Word-boundary: keyword appears as a whole word inside a suggestion
    *      (e.g. "game" in "pigeon game"). Flagged with `wordBoundary: true`.
    */
   const wordBoundaryRe = new RegExp(`(?:^|\\s)${norm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:\\s|$)`);
+  const STEM_RATIO = 0.8;
 
   async function check(prefixLen) {
     const prefix = norm.slice(0, prefixLen);
@@ -169,17 +186,29 @@ async function findFirstAppearance(
       storefront,
       platform,
       mediaApiToken,
-      redis
+      redis,
+      httpsAgent
     );
-    // Primary: exact or starts-with
+    // Tier 1 — Primary: exact or starts-with
     const primary = suggestions.find(
       (s) => s.term === norm || s.term.startsWith(norm)
     );
-    if (primary) return { ...primary, suggestionCount: suggestions.length, wordBoundary: false };
+    if (primary) return { ...primary, suggestionCount: suggestions.length, suggestions, stemMatch: false, wordBoundary: false };
 
-    // Fallback: keyword as a whole word inside a suggestion
+    // Tier 2 — Stem: keyword and suggestion share a long common prefix (≥80%)
+    // Catches plural/singular, -ing/-tion variants without language-specific rules
+    const minShared = Math.ceil(norm.length * STEM_RATIO);
+    const stem = suggestions.find((s) => {
+      const limit = Math.min(norm.length, s.term.length);
+      let shared = 0;
+      while (shared < limit && norm[shared] === s.term[shared]) shared++;
+      return shared >= minShared;
+    });
+    if (stem) return { ...stem, suggestionCount: suggestions.length, suggestions, stemMatch: true, wordBoundary: false };
+
+    // Tier 3 — Word-boundary: keyword as a whole word inside a suggestion
     const secondary = suggestions.find((s) => wordBoundaryRe.test(s.term));
-    if (secondary) return { ...secondary, suggestionCount: suggestions.length, wordBoundary: true };
+    if (secondary) return { ...secondary, suggestionCount: suggestions.length, suggestions, stemMatch: false, wordBoundary: true };
 
     return null;
   }
@@ -333,6 +362,7 @@ export async function calculatePopularity(keyword, storefront, platform, deps) {
     appleAdsCookie,
     appleAdsXsrfToken,
     appleAdsAdamId,
+    httpsAgent = null,
   } = deps;
   const norm = keyword.toLowerCase().trim();
   const totalLen = norm.length;
@@ -341,6 +371,8 @@ export async function calculatePopularity(keyword, storefront, platform, deps) {
   let positionScore = 0;
   let appearance = null;
   let isSparse = false;
+  let ambiguityRatio = 1;
+  let ambiguityMultiplier = 1;
 
   try {
     // Signal 1 & 2: prefix depth + position (requires APPLE_MEDIA_API_TOKEN)
@@ -352,7 +384,8 @@ export async function calculatePopularity(keyword, storefront, platform, deps) {
           storefront,
           platform,
           mediaApiToken,
-          redis
+          redis,
+          httpsAgent
         );
       } catch (err) {
         if (err instanceof RateLimitError) {
@@ -397,6 +430,36 @@ export async function calculatePopularity(keyword, storefront, platform, deps) {
       const absoluteScore = Math.max(0, 100 - (appearance.prefixLength - 1) * 15);
       prefixScore = Math.max(absoluteScore, ratioScore);
 
+      // Ambiguity penalty: if the matching prefix is shared by many unrelated
+      // suggestions, the early appearance reflects prefix popularity (brand
+      // families, common words) rather than specific keyword demand.
+      if (appearance.suggestions && appearance.suggestions.length > 1) {
+        const kwTokens = norm.split(/\s+/).filter(t => t.length > 0);
+        if (kwTokens.length > 0) {
+          const wordRe = /[a-z0-9]+/g;
+          const relatedCount = appearance.suggestions.filter(s => {
+            const sWords = s.term.match(wordRe) || [];
+            const matched = kwTokens.filter(t =>
+              sWords.some(w => w.startsWith(t) || t.startsWith(w))
+            );
+            return matched.length === kwTokens.length;
+          }).length;
+
+          ambiguityRatio = relatedCount / appearance.suggestions.length;
+          const depthRatio = appearance.prefixLength / totalLen;
+          // High ambiguity + early prefix → strong penalty
+          // High ambiguity + late prefix → mild penalty (intent already specific)
+          // Low ambiguity → no penalty regardless of depth
+          ambiguityMultiplier = Math.max(0.2, 1 - (1 - ambiguityRatio) * (1 - depthRatio));
+          prefixScore = Math.round(prefixScore * ambiguityMultiplier);
+        }
+      }
+
+      // Stem matches (e.g. "subscriptions" via "subscription manager") —
+      // same intent, slight discount (15%) for inexact morphological match
+      if (appearance.stemMatch) {
+        prefixScore = Math.round(prefixScore * 0.85);
+      }
       // Word-boundary matches (keyword found inside a suggestion, not as prefix)
       // are a weaker signal — apply 40% discount
       if (appearance.wordBoundary) {
@@ -469,6 +532,9 @@ export async function calculatePopularity(keyword, storefront, platform, deps) {
         prefixAbsoluteScore: appearance ? Math.max(0, 100 - (appearance.prefixLength - 1) * 15) : null,
         prefixRatioScore: appearance ? Math.round((1 - appearance.prefixLength / totalLen) * 100) : null,
         prefixLength: appearance?.prefixLength ?? null,
+        ambiguityRatio: Math.round(ambiguityRatio * 100) / 100,
+        ambiguityMultiplier: Math.round(ambiguityMultiplier * 100) / 100,
+        stemMatch: appearance?.stemMatch ?? false,
         wordBoundary: appearance?.wordBoundary ?? false,
         positionScore,
         suggestionCount: appearance?.suggestionCount ?? null,

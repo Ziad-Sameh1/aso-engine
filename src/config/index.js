@@ -68,9 +68,11 @@ export const config = {
   proxyUrl: process.env.PROXY_URL,
   proxyMaxSockets: ttl(process.env.PROXY_MAX_SOCKETS, 100),
   // Setup ranking
-  setupRankConcurrency: ttl(process.env.SETUP_RANK_CONCURRENCY, 50),
+  setupRankConcurrency: ttl(process.env.SETUP_RANK_CONCURRENCY, 100),
   setupMaxPermutations: ttl(process.env.SETUP_MAX_PERMUTATIONS, 800),
   setupMaxSeedPermutations: ttl(process.env.SETUP_MAX_SEED_PERMUTATIONS, 400),
+  setupSuggestConcurrency: ttl(process.env.SETUP_SUGGEST_CONCURRENCY, 100),
+  miningConcurrency: ttl(process.env.MINING_CONCURRENCY, 100),
   cacheTtlItunesMeta: ttl(process.env.CACHE_TTL_ITUNES_META, 86400), // 24h
   // ShipLift (cold email pipeline)
   shipliftApiUrl: process.env.SHIPLIFT_API_URL,

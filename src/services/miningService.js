@@ -1,10 +1,10 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import axios from "axios";
-import { HttpsProxyAgent } from "https-proxy-agent";
 import { CacheService } from "./cache.js";
 import { config } from "../config/index.js";
+import { getProxyAgent } from "./appstore.js";
 
-const SUGGEST_CONCURRENCY = 50;
+const SUGGEST_CONCURRENCY = config.miningConcurrency;
 const BACKOFF_BASE_MS = 3000;
 const BACKOFF_MAX_MS = 30000;
 const BACKOFF_MAX_ATTEMPTS = 4;
@@ -37,19 +37,6 @@ function createLimiter(concurrency) {
       next();
     });
   };
-}
-
-// ── Singleton proxy agent for Apple Suggest API ─────────────────────────────
-
-let _suggestProxyAgent = null;
-function getSuggestProxyAgent() {
-  if (!_suggestProxyAgent) {
-    _suggestProxyAgent = new HttpsProxyAgent(config.proxyUrl, {
-      keepAlive: true,
-      maxSockets: SUGGEST_CONCURRENCY,
-    });
-  }
-  return _suggestProxyAgent;
 }
 
 // ── Apple Suggest via proxy ─────────────────────────────────────────────────
@@ -86,7 +73,7 @@ async function fetchSuggestViaProxy(keyword, store, redis) {
 
   const axiosOpts = { headers, timeout: 10000, responseType: "json" };
   if (config.proxyUrl) {
-    axiosOpts.httpsAgent = getSuggestProxyAgent();
+    axiosOpts.httpsAgent = getProxyAgent();
   }
 
   const response = await axios.get(url, axiosOpts);
@@ -117,10 +104,10 @@ async function fetchSuggestViaProxy(keyword, store, redis) {
  * Returns a raw tree: Record<keyword, string[]>.
  * `globalSeen` tracks terms already used in prior levels to avoid duplicates.
  */
-export async function fetchLevel(keywords, store, redis, globalSeen) {
+export async function fetchLevel(keywords, store, redis, globalSeen, sharedLimit = null) {
   const rawTree = {};
   const retryQueue = [];
-  const limit = createLimiter(SUGGEST_CONCURRENCY);
+  const limit = sharedLimit ?? createLimiter(SUGGEST_CONCURRENCY);
 
   function collect(keyword, suggestions) {
     const terms = suggestions.map((s) => s.term);
@@ -284,9 +271,9 @@ async function applyEnrichment(rawTree, keywords, appMeta, globalSeen) {
  * Run one level of mining: fetch Apple Suggest + optionally Gemini enrich.
  * Returns Record<keyword, string[]>.
  */
-export async function mineLevel(keywords, store, redis, appMeta, globalSeen, levelNum) {
+export async function mineLevel(keywords, store, redis, appMeta, globalSeen, levelNum, sharedLimit = null) {
   console.log(`[mining] Level ${levelNum}: fetching suggestions for ${keywords.length} keywords`);
-  const raw = await fetchLevel(keywords, store, redis, globalSeen);
+  const raw = await fetchLevel(keywords, store, redis, globalSeen, sharedLimit);
 
   if (!appMeta) return raw;
 
@@ -316,21 +303,21 @@ export async function mineLevel(keywords, store, redis, appMeta, globalSeen, lev
  * @param {object}   appMeta  - { name, subtitle, description, category }
  * @returns {Promise<{ searchTerms: { L1: string[], L2: string[], L3: string[] }, tree: object }>}
  */
-export async function mineSuggestions(seed, store, redis, appMeta) {
+export async function mineSuggestions(seed, store, redis, appMeta, sharedLimit = null) {
   const globalSeen = new Set(seed);
 
   // ── Level 1 ─────────────────────────────────────────────────────────────
   globalSeen.clear();
   for (const s of seed) globalSeen.add(s);
-  const level1 = await mineLevel(seed, store, redis, appMeta, globalSeen, 1);
+  const level1 = await mineLevel(seed, store, redis, appMeta, globalSeen, 1, sharedLimit);
 
   // ── Level 2 ─────────────────────────────────────────────────────────────
   const allL1Terms = Object.values(level1).flat();
-  const level2 = await mineLevel(allL1Terms, store, redis, appMeta, globalSeen, 2);
+  const level2 = await mineLevel(allL1Terms, store, redis, appMeta, globalSeen, 2, sharedLimit);
 
   // ── Level 3 ─────────────────────────────────────────────────────────────
   const allL2Terms = Object.values(level2).flat();
-  const level3 = await mineLevel(allL2Terms, store, redis, appMeta, globalSeen, 3);
+  const level3 = await mineLevel(allL2Terms, store, redis, appMeta, globalSeen, 3, sharedLimit);
 
   // ── Build nested tree ───────────────────────────────────────────────────
   const tree = {};

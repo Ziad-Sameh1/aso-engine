@@ -21,6 +21,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 import { config } from "../config/index.js";
 import { scrapeAppPageMetadata, getSearchRankingsLite } from "./appstore.js";
 import { calculateCompetitiveness } from "./competitiveness.js";
+import { calculateOpportunity } from "./opportunity.js";
 import { CacheService } from "./cache.js";
 
 // TODO: restore full tier after testing
@@ -349,6 +350,7 @@ async function findFirstAppearanceOnce(keyword, storefront, platform, mediaApiTo
   const wordBoundaryRe = new RegExp(
     `(?:^|\\s)${norm.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}(?:\\s|$)`
   );
+  const STEM_RATIO = 0.8;
 
   async function check(prefixLen) {
     const prefix = norm.slice(0, prefixLen);
@@ -360,10 +362,19 @@ async function findFirstAppearanceOnce(keyword, storefront, platform, mediaApiTo
     const primary = suggestions.find(
       (s) => s.term === norm || s.term.startsWith(norm)
     );
-    if (primary) return { ...primary, suggestionCount: suggestions.length, wordBoundary: false };
+    if (primary) return { ...primary, suggestionCount: suggestions.length, stemMatch: false, wordBoundary: false };
+
+    const minShared = Math.ceil(norm.length * STEM_RATIO);
+    const stem = suggestions.find((s) => {
+      const limit = Math.min(norm.length, s.term.length);
+      let shared = 0;
+      while (shared < limit && norm[shared] === s.term[shared]) shared++;
+      return shared >= minShared;
+    });
+    if (stem) return { ...stem, suggestionCount: suggestions.length, stemMatch: true, wordBoundary: false };
 
     const secondary = suggestions.find((s) => wordBoundaryRe.test(s.term));
-    if (secondary) return { ...secondary, suggestionCount: suggestions.length, wordBoundary: true };
+    if (secondary) return { ...secondary, suggestionCount: suggestions.length, stemMatch: false, wordBoundary: true };
 
     return null;
   }
@@ -405,6 +416,9 @@ function scoreFromAppearance(appearance, totalLen) {
   const absoluteScore = Math.max(0, 100 - (appearance.prefixLength - 1) * 15);
   prefixScore = Math.max(absoluteScore, ratioScore);
 
+  if (appearance.stemMatch) {
+    prefixScore = Math.round(prefixScore * 0.85);
+  }
   if (appearance.wordBoundary) {
     prefixScore = Math.round(prefixScore * 0.6);
   }
@@ -574,7 +588,7 @@ async function enrichKeywordsForStore(scoredKeywords, appleId, store, platform) 
     const popularity = Math.min(kwObj.popularity, popularityCap);
 
     const appRank = allResults.find((r) => String(r.id) === String(appleId))?.rank ?? null;
-    const opportunityScore = Math.round(popularity * (1 - difficulty / 100));
+    const opportunityScore = calculateOpportunity(popularity, difficulty);
 
     return {
       keyword: kwObj.keyword,
