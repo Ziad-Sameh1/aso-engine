@@ -75,7 +75,7 @@ function optimizationWallScore(top10) {
 
 // ── Final blend ───────────────────────────────────────────────────────────────
 
-function calculateDifficultyScore(tagged) {
+export function calculateDifficultyScore(tagged) {
   const top3 = tagged.slice(0, 3);
   const ranks4to10 = tagged.slice(3, 10);
   const top10 = tagged.slice(0, 10);

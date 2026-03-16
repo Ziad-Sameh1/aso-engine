@@ -248,8 +248,20 @@ export async function lookupAppMetadata(appIds, country = "us", redis = null) {
       wave.map(async (batch) => {
         const url = `https://itunes.apple.com/lookup?id=${batch.join(",")}&country=${country}`;
         try {
-          const response = await fetch(url, { headers: { "User-Agent": USER_AGENT } });
-          const data = await response.json();
+          const useProxyForLookup = !!config.proxyUrl;
+          let data;
+          if (useProxyForLookup) {
+            const resp = await axios.get(url, {
+              httpsAgent: getProxyAgent(),
+              headers: { "User-Agent": USER_AGENT },
+              timeout: 15000,
+              responseType: "json",
+            });
+            data = resp.data;
+          } else {
+            const response = await fetch(url, { headers: { "User-Agent": USER_AGENT } });
+            data = await response.json();
+          }
           return data.results ?? [];
         } catch (err) {
           console.warn(`iTunes Lookup failed for batch: ${err.message}`);
@@ -306,13 +318,14 @@ export async function lookupAppMetadata(appIds, country = "us", redis = null) {
  *
  * @param {string} appleId
  * @param {string} [country="us"]
+ * @param {string|null} [proxyUrl=null] - Optional HTTP/HTTPS/SOCKS proxy URL
  * @returns {Promise<object|null>}
  */
-export async function scrapeAppPageMetadata(appleId, country = "us") {
+export async function scrapeAppPageMetadata(appleId, country = "us", proxyUrl = null) {
   // Apple redirects placeholder slugs to the real URL automatically
   const url = `https://apps.apple.com/${country}/app/a/id${appleId}`;
 
-  const response = await fetch(url, {
+  const fetchOptions = {
     headers: {
       "User-Agent": USER_AGENT,
       Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
@@ -323,7 +336,13 @@ export async function scrapeAppPageMetadata(appleId, country = "us") {
       "Sec-Fetch-Site": "none",
     },
     redirect: "follow",
-  });
+  };
+
+  if (proxyUrl) {
+    fetchOptions.agent = new HttpsProxyAgent(proxyUrl);
+  }
+
+  const response = await fetch(url, fetchOptions);
 
   if (!response.ok) {
     if (response.status === 404) return null;
@@ -417,10 +436,11 @@ export async function scrapeAppPageMetadata(appleId, country = "us") {
  *
  * @param {string} appleId
  * @param {string} [country="us"]
+ * @param {string|null} [proxyUrl=null] - Optional HTTP/HTTPS/SOCKS proxy URL
  * @returns {Promise<object|null>}
  */
-export async function fetchAppMetadata(appleId, country = "us") {
-  const meta = await scrapeAppPageMetadata(appleId, country);
+export async function fetchAppMetadata(appleId, country = "us", proxyUrl = null) {
+  const meta = await scrapeAppPageMetadata(appleId, country, proxyUrl);
   if (!meta) return null;
 
   // Format price as a display string (same shape callers expect)

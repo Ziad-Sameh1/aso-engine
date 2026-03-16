@@ -1,9 +1,11 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
-import { scrapeAppPageMetadata, fetchSearchHtml, fetchSearchHtmlViaProxy, extractSearchResults, lookupAppMetadata, getProxyAgent } from "./appstore.js";
+import { scrapeAppPageMetadata, fetchSearchHtml, extractSearchResults, getSearchRankings } from "./appstore.js";
 import { mineSuggestions } from "./miningService.js";
-import { calculateCompetitiveness } from "./competitiveness.js";
-import { calculatePopularity } from "./popularity.js";
+import { scorePopularity } from "./resultsPopularityService.js";
+import { calculateDifficultyScore } from "./resultsDifficultyService.js";
+import { storeToLocale, relevanceMultiplier, hydrateSubtitles } from "./resultsShared.js";
 import { calculateOpportunity } from "./opportunity.js";
+
 import { config } from "../config/index.js";
 
 const STOP_WORDS = new Set([
@@ -27,7 +29,7 @@ function extractTokens(text) {
         .toLowerCase()
         .split(/[\s\-–—\/\|&,.:;!?()[\]{}'"]+/)
         .map((t) => t.trim())
-        .filter((t) => t.length > 0 && !STOP_WORDS.has(t))
+        .filter((t) => t.length >= 2 && !STOP_WORDS.has(t))
     ),
   ];
 }
@@ -289,8 +291,10 @@ export async function setupApp(_pg, redis, { appleId, stores = [] }) {
     const seedTokens = seeds.filter((s) => s.frequency > 1).map((s) => s.token);
     const seedPermutations = buildSearchTerms({ titleTokens: seedTokens, subtitleTokens: [], descriptionTokens: [] }, config.setupMaxSeedPermutations);
 
-    // Merge all: token permutations + seed permutations + mined, deduplicated
-    const searchTerms = [...new Set([...permutationTerms, ...seedPermutations, ...allMinedFlat])];
+    // Merge all: token permutations + seed permutations + mined, deduplicated.
+    // Drop any term where a word is a single character (e.g. "food i", "nutrition i").
+    const searchTerms = [...new Set([...permutationTerms, ...seedPermutations, ...allMinedFlat])]
+      .filter((term) => term.split(" ").every((w) => w.length >= 2));
     callsCount += searchTerms.length;
 
     const intentTopApps = intentTopAppsMap[store] ?? [];
@@ -395,52 +399,6 @@ function createLimiter(concurrency) {
   };
 }
 
-// ── Popularity scoring ──────────────────────────────────────────────────────
-
-/**
- * Calculate popularity score (0–100) from top-10 rating counts.
- *
- * Step 1: Zero check — if 5+ of 10 have 0 reviews → score = 0 (dead keyword).
- * Step 2: Trimmed mean — drop rank #1 (super-app) and ranks #9-10 (filler),
- *         average ranks #2–#8 to get "typical top-10 app" rating count.
- * Step 3: Concentration penalty (HHI) — penalize if 1–2 apps hold all reviews.
- * Step 4: Log-scale to 0–100.
- */
-export function calculatePopularityScore(ratingCounts) {
-  const counts = [...ratingCounts];
-  while (counts.length < 10) counts.push(0);
-
-  // Step 1 — Dead keyword: 5+ apps with zero reviews → score 0
-  const zeroCount = counts.filter((c) => c === 0 || c == null).length;
-  if (zeroCount >= 5) return 0;
-
-  // Step 2 — Low-engagement gate: if 6+ of 10 apps have < 50 ratings,
-  // the SERP is dominated by near-zero apps — cap regardless of outliers
-  const LOW_ENGAGEMENT_THRESHOLD = 50;
-  const lowCount = counts.filter((c) => (c ?? 0) < LOW_ENGAGEMENT_THRESHOLD).length;
-  const lowEngagementCap = lowCount >= 6 ? 20 : 100;
-
-  // Safe values — avoid log(0)
-  const safe = counts.map((c) => Math.max(c ?? 0, 1));
-
-  // Step 3 — Median (robust against a single super-app inflating the average)
-  const sorted = [...safe].sort((a, b) => a - b);
-  const mid = Math.floor(sorted.length / 2);
-  const median = sorted.length % 2 === 0
-    ? (sorted[mid - 1] + sorted[mid]) / 2
-    : sorted[mid];
-
-  // Step 4 — HHI concentration penalty (pre-log, floor 0.5)
-  const total = safe.reduce((a, b) => a + b, 0);
-  const hhi = safe.reduce((sum, r) => sum + (r / total) ** 2, 0);
-  const penalty = Math.max(0.5, 1 - 0.5 * ((hhi - 0.1) / 0.9));
-
-  // Step 5 — Log-scale to 0–100, then apply low-engagement cap
-  const LOG_MAX = Math.log10(50_000_000); // ~7.7
-  const raw = (Math.log10(median * penalty) / LOG_MAX) * 100;
-  return Math.min(lowEngagementCap, Math.round(Math.max(0, Math.min(100, raw))));
-}
-
 // ── Rank & score all search terms for one store ─────────────────────────────
 
 const RANK_CONCURRENCY = config.setupRankConcurrency;
@@ -449,43 +407,56 @@ const RANK_BACKOFF_MAX_MS = 30000;
 const RANK_BACKOFF_MAX_ROUNDS = 4;
 
 /**
- * Attempt a single fetch for one search term — no inline retry.
- * Returns { term, rank, top10Ids } on success, or throws on failure.
+ * Fetch search results once, then score both popularity and difficulty
+ * from the same data. Fetches top 20 (popularity needs 20, difficulty uses first 10).
  */
-async function fetchTermRanking(term, appleId, store) {
-  const html = await fetchSearchHtmlViaProxy(term, store, "iphone");
-  const results = extractSearchResults(html);
-  const top10 = results.slice(0, 10);
-  const match = results.find((r) => r.id === String(appleId));
-  return {
-    term,
-    rank: match?.rank ?? null,
-    top10Ids: top10.map((r) => r.id),
-  };
+async function fetchTermScores(term, appleId, store) {
+  const results = await getSearchRankings({
+    keyword: term,
+    country: store,
+    platform: "iphone",
+    limit: 20,
+    useProxy: true,
+  });
+
+  await hydrateSubtitles(results, store);
+
+  const locale = storeToLocale(store);
+  const tagged = results.map((app) => {
+    const { multiplier, match } = relevanceMultiplier(term, app.name, app.subtitle, locale);
+    const ratingCount = Math.max(app.ratingCount ?? 0, 1);
+    return { ...app, relevance: { multiplier, match, ratingCount } };
+  });
+
+  const { popularity } = scorePopularity(tagged);
+  const { difficulty } = calculateDifficultyScore(tagged);
+
+  const appMatch = results.find((r) => String(r.id) === String(appleId));
+  const rank = appMatch?.rank ?? null;
+
+  return { term, rank, popularity, difficulty };
 }
 
 /**
  * Rank all search terms for a single store.
  *
- * Phase 1: All terms fetched in parallel (concurrency 50).
- *          Failures collected into a retry queue — no inline waiting.
- * Phase 2: Retry queue processed with exponential backoff (parallel each round).
- *          Up to RANK_BACKOFF_MAX_ROUNDS rounds. Exhausted terms marked failed.
+ * Phase 1: All terms scored in parallel (concurrency-limited).
+ *          Failures collected into a retry queue.
+ * Phase 2: Retry queue processed with exponential backoff.
  *
- * After all fetches, batch-resolves top-10 rating counts via iTunes Lookup
- * and calculates popularity scores.
+ * Each term is scored via getResultsPopularity + getResultsDifficulty.
  *
  * @param {string} appleId
  * @param {string} store
  * @param {string[]} searchTerms
  * @returns {Promise<{ keywords: Array, liveKeywords: number }>}
  */
-export async function rankStore(appleId, store, searchTerms, redis = null, sharedLimit = null) {
+export async function rankStore(appleId, store, searchTerms, sharedLimit = null) {
   console.log(`[setup:rank] ${store}: ranking ${searchTerms.length} search terms (concurrency: ${RANK_CONCURRENCY})`);
   const rankStartMs = performance.now();
 
   const limit = sharedLimit ?? createLimiter(RANK_CONCURRENCY);
-  const resolved = new Map(); // term → { rank, top10Ids }
+  const resolved = new Map();
   const retryQueue = [];
 
   // ── Phase 1: Parallel fetch, collect failures ──────────────────────────
@@ -494,7 +465,7 @@ export async function rankStore(appleId, store, searchTerms, redis = null, share
     searchTerms.map((term) =>
       limit(async () => {
         try {
-          resolved.set(term, await fetchTermRanking(term, appleId, store));
+          resolved.set(term, await fetchTermScores(term, appleId, store));
         } catch (err) {
           retryQueue.push(term);
         }
@@ -515,7 +486,7 @@ export async function rankStore(appleId, store, searchTerms, redis = null, share
       thisRound.map((term) =>
         limit(async () => {
           try {
-            resolved.set(term, await fetchTermRanking(term, appleId, store));
+            resolved.set(term, await fetchTermScores(term, appleId, store));
           } catch (err) {
             retryQueue.push(term);
           }
@@ -528,59 +499,39 @@ export async function rankStore(appleId, store, searchTerms, redis = null, share
   // Mark anything still unresolved as failed
   for (const term of retryQueue) {
     console.warn(`[setup:rank] "${term}" (${store}) exhausted retries — skipped`);
-    resolved.set(term, { term, rank: null, top10Ids: [], failed: true });
+    resolved.set(term, { term, rank: null, popularity: null, difficulty: null, failed: true });
   }
 
-  const rawResults = searchTerms.map((term) => ({ term, ...resolved.get(term) }));
-
-  // Collect all unique top-10 app IDs for batch lookup
-  const allTop10Ids = new Set();
-  for (const r of rawResults) {
-    for (const id of r.top10Ids) allTop10Ids.add(id);
-  }
-
-  console.log(`[setup:rank] ${store}: resolving metadata for ${allTop10Ids.size} unique apps`);
-  const metaT0 = performance.now();
-  const metadata = await lookupAppMetadata([...allTop10Ids], store, redis);
-  const metadataLookupMs = Math.round(performance.now() - metaT0);
-
-  // Score each term
+  // Build keywords with opportunity score
   const keywords = [];
   let liveKeywords = 0;
 
-  for (const r of rawResults) {
+  for (const term of searchTerms) {
+    const r = resolved.get(term);
     if (r.failed) {
-      keywords.push({ term: r.term, rank: null, resultsPopularity: null, difficulty: null, suggestPopularity: null, popularity: null, opportunity: null, failed: true });
+      keywords.push({ ...r, opportunity: null });
       continue;
     }
 
-    // Build top-10 enriched list from resolved metadata
-    const top10 = r.top10Ids.map((id, idx) => ({
-      rank: idx + 1,
-      rating: metadata[id]?.rating ?? null,
-      ratingCount: metadata[id]?.ratingCount ?? 0,
-    }));
+    const opportunity = calculateOpportunity(r.popularity, r.difficulty);
+    if (r.popularity > 5) liveKeywords++;
 
-    const ratingCounts = top10.map((t) => t.ratingCount);
-    const resultsPopularity = calculatePopularityScore(ratingCounts);
-    const difficulty = calculateCompetitiveness(top10);
-
-    if (resultsPopularity > 0) liveKeywords++;
-
-    keywords.push({
-      term: r.term,
-      rank: r.rank,
-      resultsPopularity,
-      difficulty,
-    });
+    keywords.push({ ...r, opportunity });
   }
+
+  // Sort: popularity descending, then rank ascending (null ranks last)
+  keywords.sort((a, b) => {
+    const oppDiff = (b.opportunity ?? -Infinity) - (a.opportunity ?? -Infinity);
+    if (oppDiff !== 0) return oppDiff;
+    return (b.popularity ?? 0) - (a.popularity ?? 0);
+  });
 
   const rankTotalMs = Math.round(performance.now() - rankStartMs);
   console.log(`[setup:rank] ${store}: done — ${liveKeywords} live keywords out of ${searchTerms.length}`);
   return {
     keywords,
     liveKeywords,
-    timings: { totalMs: rankTotalMs, fetchMs, retryMs, metadataLookupMs },
+    timings: { totalMs: rankTotalMs, fetchMs, retryMs },
   };
 }
 
@@ -593,7 +544,7 @@ export async function rankStore(appleId, store, searchTerms, redis = null, share
  * @param {Array<{ store: string, searchTerms: string[] }>} storeResults - from setupApp()
  * @returns {Promise<{ stores: Array, totalLiveKeywords: number }>}
  */
-export async function rankAllStores(appleId, storeResults, redis = null) {
+export async function rankAllStores(appleId, storeResults) {
   const rankingStartMs = performance.now();
   const totalTerms = storeResults.reduce((s, r) => s + r.searchTerms.length, 0);
   console.log(`[setup:rank] Starting ranking phase: ${storeResults.length} stores, ${totalTerms} total search terms`);
@@ -605,160 +556,16 @@ export async function rankAllStores(appleId, storeResults, redis = null) {
   const rankedStores = await Promise.all(
     storeResults.map(async ({ store, searchTerms }) => {
       if (searchTerms.length === 0) {
-        return { store, keywords: [], liveKeywords: 0, timings: { totalMs: 0, fetchMs: 0, retryMs: 0, metadataLookupMs: 0 } };
+        return { store, keywords: [], liveKeywords: 0, timings: { totalMs: 0, fetchMs: 0, retryMs: 0 } };
       }
-      const result = await rankStore(appleId, store, searchTerms, redis, sharedRankLimit);
+      const result = await rankStore(appleId, store, searchTerms, sharedRankLimit);
       return { store, ...result };
     })
   );
 
   const rankingMs = Math.round(performance.now() - rankingStartMs);
-  console.log(`[setup:rank] Ranking done in ${rankingMs}ms — enriching with suggest popularity`);
-
-  // Enrich with suggestion popularity in parallel across stores (shared limiter)
-  const sharedSuggestLimit = createLimiter(SUGGEST_POP_CONCURRENCY);
-  const suggestT0 = performance.now();
-  const enrichedStores = await Promise.all(
-    rankedStores.map(async (storeResult) => {
-      const enrichedKeywords = await enrichSuggestPopularity(storeResult.keywords, storeResult.store, redis, sharedSuggestLimit);
-      // Sort: ranked keywords first (ascending rank), then unranked by opportunity descending
-      enrichedKeywords.sort((a, b) => {
-        const aRanked = a.rank != null;
-        const bRanked = b.rank != null;
-        if (aRanked && bRanked) return a.rank - b.rank;
-        if (aRanked) return -1;
-        if (bRanked) return 1;
-        return (b.opportunity ?? 0) - (a.opportunity ?? 0);
-      });
-      return { ...storeResult, keywords: enrichedKeywords };
-    })
-  );
-  const suggestMs = Math.round(performance.now() - suggestT0);
-
-  const totalLiveKeywords = enrichedStores.reduce((s, r) => s + r.liveKeywords, 0);
-  const totalMs = Math.round(performance.now() - rankingStartMs);
-  console.log(`[setup:rank] Complete: ${totalLiveKeywords} live keywords across ${storeResults.length} stores (suggest: ${suggestMs}ms)`);
-  return { stores: enrichedStores, totalLiveKeywords, rankingMs, suggestMs, totalMs };
-}
-
-// ── Suggest popularity enrichment ────────────────────────────────────────────
-
-const SUGGEST_POP_CONCURRENCY = config.setupSuggestConcurrency;
-const SUGGEST_POP_BACKOFF_BASE_MS = 3000;
-const SUGGEST_POP_BACKOFF_MAX_MS = 30000;
-const SUGGEST_POP_BACKOFF_MAX_ROUNDS = 4;
-
-/**
- * Enrich keywords with suggestion-based popularity (Apple Suggest prefix depth).
- * Only processes keywords where resultsPopularity > 0 — no signal for dead keywords.
- *
- * Uses concurrency 50 + exponential backoff retry queue (same pattern as rankStore).
- * Extracts the uncapped weightedSum from the breakdown to feed into overallPopularity.
- *
- * For each keyword, adds:
- *   suggestPopularity: raw uncapped 0-100 score (null if failed/skipped)
- *   popularity: Math.min(95, Math.max(5, round((resultsPopularity * suggestPopularity) / 100)))
- *              or resultsPopularity if suggest fetch failed
- *              or 0 if resultsPopularity === 0
- *
- * @param {Array<{term, rank, resultsPopularity, difficulty}>} keywords
- * @param {string} store
- * @param {object|null} redis
- * @returns {Promise<Array>}
- */
-async function enrichSuggestPopularity(keywords, store, redis, sharedLimit = null) {
-  const suggestDeps = {
-    redis,
-    mediaApiToken: config.appleMediaApiToken,
-    appleAdsCookie: config.appleAdsCookie,
-    appleAdsXsrfToken: config.appleAdsXsrfToken,
-    appleAdsAdamId: config.appleAdsAdamId,
-    httpsAgent: config.proxyUrl ? getProxyAgent() : null,
-  };
-
-  // Only process keywords with resultsPopularity > 0
-  const liveTerms = keywords
-    .filter((kw) => kw.resultsPopularity != null && kw.resultsPopularity > 0 && !kw.failed)
-    .map((kw) => kw.term);
-
-  console.log(`[setup:suggest] ${store}: fetching suggest popularity for ${liveTerms.length} live keywords`);
-
-  const limit = sharedLimit ?? createLimiter(SUGGEST_POP_CONCURRENCY);
-  const resolved = new Map(); // term → raw suggestPopularity score
-  const retryQueue = [];
-
-  // ── Phase 1: Parallel fetch ──────────────────────────────────────────────
-  await Promise.all(
-    liveTerms.map((term) =>
-      limit(async () => {
-        try {
-          const result = await calculatePopularity(term, store.toLowerCase(), "iphone", suggestDeps);
-          // Use uncapped weightedSum when available; fall back to capped score
-          const raw = result?.breakdown?.weightedSum ?? result?.score ?? null;
-          resolved.set(term, raw != null ? Math.round(raw) : null);
-        } catch {
-          retryQueue.push(term);
-        }
-      })
-    )
-  );
-
-  // ── Phase 2: Backoff retry ───────────────────────────────────────────────
-  for (let round = 1; round <= SUGGEST_POP_BACKOFF_MAX_ROUNDS && retryQueue.length > 0; round++) {
-    const delay = Math.min(SUGGEST_POP_BACKOFF_BASE_MS * Math.pow(2, round - 1), SUGGEST_POP_BACKOFF_MAX_MS);
-    console.warn(`[setup:suggest] ${store}: ${retryQueue.length} failed — backoff round ${round}/${SUGGEST_POP_BACKOFF_MAX_ROUNDS} in ${delay}ms`);
-    await new Promise((r) => setTimeout(r, delay));
-
-    const thisRound = retryQueue.splice(0);
-    await Promise.all(
-      thisRound.map((term) =>
-        limit(async () => {
-          try {
-            const result = await calculatePopularity(term, store.toLowerCase(), "iphone", suggestDeps);
-            const raw = result?.breakdown?.weightedSum ?? result?.score ?? null;
-            resolved.set(term, raw != null ? Math.round(raw) : null);
-          } catch {
-            retryQueue.push(term);
-          }
-        })
-      )
-    );
-  }
-
-  // Terms still unresolved after retries → null
-  for (const term of retryQueue) {
-    resolved.set(term, null);
-  }
-
-  console.log(`[setup:suggest] ${store}: done — ${resolved.size} terms enriched`);
-
-  // Merge suggest scores back and compute overall popularity
-  return keywords.map((kw) => {
-    if (kw.failed) return kw;
-
-    if (!kw.resultsPopularity) {
-      return { ...kw, suggestPopularity: null, popularity: 0, opportunity: 0 };
-    }
-
-    const suggestPopularity = resolved.get(kw.term) ?? null;
-
-    let popularity;
-    if (suggestPopularity != null) {
-      // Weighted average: resultsPopularity (rating-count ground truth) 55% +
-      // suggestPopularity (Apple Suggest prefix depth) 45%.
-      // Avoids the crushing effect of the old multiplicative formula.
-      popularity = Math.min(95, Math.max(5, Math.round(kw.resultsPopularity * 0.55 + suggestPopularity * 0.45)));
-    } else {
-      // Suggest fetch failed — fall back to resultsPopularity
-      popularity = kw.resultsPopularity;
-    }
-
-    // Opportunity = how worthwhile it is to target this keyword.
-    // Gap-based: (popularity - difficulty) + 50, scaled by demand floor.
-    const difficulty = kw.difficulty ?? 50;
-    const opportunity = kw.failed ? 0 : calculateOpportunity(popularity, difficulty);
-
-    return { ...kw, suggestPopularity, popularity, opportunity };
-  });
+  const totalLiveKeywords = rankedStores.reduce((s, r) => s + r.liveKeywords, 0);
+  console.log(`[setup:rank] Complete: ${totalLiveKeywords} live keywords across ${storeResults.length} stores`);
+  return { stores: rankedStores, totalLiveKeywords, rankingMs };
 }
 

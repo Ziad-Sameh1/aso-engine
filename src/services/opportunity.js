@@ -1,33 +1,49 @@
 /**
- * Keyword opportunity scoring (0-95).
+ * Keyword opportunity scoring (1-100).
  *
- * Measures the gap between demand (popularity) and competition (difficulty).
- * High opportunity = high demand AND low competition.
+ * Measures how accessible a keyword is for an indie developer:
+ * high demand AND low competition = high opportunity.
  *
  * Formula:
- *   gap = popularity - difficulty
- *   rawOpportunity = gap + 50          (centres at 50 when pop == diff)
- *   demandMultiplier = min(1, pop/50)  (ramps 0→1 over first 50 popularity points)
- *   score = clamp(round(raw * multiplier), 0, 95)
+ *   accessibility    = (100 - difficulty) / 100          (0→1 as difficulty drops)
+ *   indieMultiplier  = accessibility^1.5                 (exponential penalty for hard markets)
+ *   opportunity      = popularity × indieMultiplier
+ *   gap bonus        = if popularity > difficulty, add (gap × 0.5)
+ *   score            = clamp(round(opportunity), 1, 100)
  *
  * Properties:
- *   - popularity == difficulty → 50 (neutral)
- *   - popularity > difficulty  → > 50 (good opportunity)
- *   - popularity < difficulty  → < 50 (tough keyword)
- *   - popularity == 0          → 0   (no demand = no opportunity)
- *   - low pop + low difficulty → low  (dead keyword, not a real opportunity)
+ *   - high popularity + low difficulty  → near 100 (clear win)
+ *   - high popularity + high difficulty → moderate (big market, hard to enter)
+ *   - low popularity  (any difficulty)  → low      (dead keyword)
  *
  * Pure function — no side effects, no async, no API calls.
  *
  * @param {number} popularity - 0-100 scale
  * @param {number} difficulty - 0-100 scale
- * @returns {number} 0-95
+ * @returns {number} 1-100
  */
 export function calculateOpportunity(popularity, difficulty) {
-  if (popularity <= 0) return 0;
+  // 1. The Accessibility Curve
+  const accessibility = Math.max(0, (100 - difficulty) / 100);
+  const indieMultiplier = Math.pow(accessibility, 1.1);
 
+  // 2. Base Potential
+  let opportunity = popularity * indieMultiplier;
+
+  // 3. The Raw Gap Shift
   const gap = popularity - difficulty;
-  const rawOpportunity = gap + 50;
-  const demandMultiplier = Math.min(1, popularity / 50);
-  return Math.max(0, Math.min(95, Math.round(rawOpportunity * demandMultiplier)));
+  opportunity += gap * 0.5;
+
+  // 4. THE DEAD END PENALTY (Updated)
+  if (popularity < 25) {
+    // The Absolute Floor: If there's no volume, it's dead. Period.
+    // Even if difficulty is 0, crush the score.
+    opportunity = opportunity * 0.2;
+  } else if (popularity < 35 && gap < 0) {
+    // The Friction Trap: Low volume + Hard competition
+    opportunity = opportunity * 0.3;
+  }
+
+  // 5. Normalize to a clean 1-100 scale
+  return Math.round(Math.max(1, Math.min(100, opportunity)));
 }

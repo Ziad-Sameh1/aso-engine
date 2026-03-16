@@ -170,16 +170,47 @@ export const MATCH = { EXACT: 1.0, BROAD: 0.6, PARTIAL: 0.1, NONE: 0.01 };
  * None   (0.01) — no overlap
  */
 export function relevanceMultiplier(keyword, appName, appSubtitle, locale) {
-  const appText = `${appName ?? ""} ${appSubtitle ?? ""}`.trim();
+  // Use the period separator to prevent text boundaries bleeding together 
+  const appText = `${appName ?? ""} . ${appSubtitle ?? ""}`.trim();
   const normalizedAppText = normalize(appText);
   const normalizedKeyword = normalize(keyword.trim());
 
   if (!normalizedKeyword) return { multiplier: MATCH.NONE, match: "none" };
 
-  if (normalizedAppText.includes(normalizedKeyword)) {
+  // Escape special characters so Regex doesn't break
+  const escapedKw = normalizedKeyword.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&');
+  
+  // 1. Strict Exact Match (The Substring Trap Fix)
+  // We check if the keyword uses alphanumeric characters. 
+  // If it does, we enforce strict \b (Word Boundaries) so "ate" cannot match "private".
+  // If it's a non-Latin/symbol keyword (like Chinese/Japanese), we fall back to standard includes.
+  const hasWordChars = /\w/.test(normalizedKeyword);
+  let isExact = false;
+
+  if (hasWordChars) {
+    const exactRegex = new RegExp(`\\b${escapedKw}\\b`, 'i');
+    isExact = exactRegex.test(normalizedAppText);
+  } else {
+    isExact = normalizedAppText.includes(normalizedKeyword);
+  }
+
+  if (isExact) {
     return { multiplier: MATCH.EXACT, match: "exact" };
   }
 
+  // 2. Squished Exact Match (The "Trackernet" Fix)
+  // Catches App Store naming tricks like "PhotoShop" matching "photo shop".
+  // To prevent the squished string from creating a new substring trap, 
+  // we split the app text into distinct words first.
+  const squishedKw = normalizedKeyword.replace(/[\s\-_]/g, "");
+  if (squishedKw.length >= 3) {
+    const wordsInText = normalizedAppText.split(/[\s\-_.,:;!?()[\]{}|\/]+/);
+    if (wordsInText.some(word => word === squishedKw)) {
+      return { multiplier: MATCH.EXACT, match: "exact" };
+    }
+  }
+
+  // 3. Tokenize for Broad / Partial Matching
   const kwTokens = tokenize(keyword, locale).map(normalize);
   const appTokens = tokenize(appText, locale).map(normalize);
 
