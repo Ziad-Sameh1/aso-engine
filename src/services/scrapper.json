@@ -1,0 +1,5863 @@
+{
+    "appleId": "6744399806",
+    "stores": [
+        {
+            "store": "us",
+            "found": true,
+            "ms": 2280,
+            "name": "Qrosh: AI Budget Money App",
+            "subtitle": "Smart Bill & Expense Tracker",
+            "localizedIntents": [
+                "budget app",
+                "expense tracker",
+                "money tracker",
+                "personal finance",
+                "bill tracker",
+                "save money app",
+                "subscription manager"
+            ],
+            "searchResults": [],"searchResultsCount": 7769,
+            "keywords": [
+                {
+                    "keyword": "app",
+                    "frequency": 2048
+                },
+                {
+                    "keyword": "app store",
+                    "frequency": 2037
+                },
+                {
+                    "keyword": "store",
+                    "frequency": 2037
+                },
+                {
+                    "keyword": "money",
+                    "frequency": 389
+                },
+                {
+                    "keyword": "tracker",
+                    "frequency": 367
+                },
+                {
+                    "keyword": "track",
+                    "frequency": 336
+                },
+                {
+                    "keyword": "expense",
+                    "frequency": 328
+                },
+                {
+                    "keyword": "budget",
+                    "frequency": 316
+                },
+                {
+                    "keyword": "finance",
+                    "frequency": 246
+                },
+                {
+                    "keyword": "expenses",
+                    "frequency": 200
+                },
+                {
+                    "keyword": "manager",
+                    "frequency": 197
+                },
+                {
+                    "keyword": "spending",
+                    "frequency": 190
+                },
+                {
+                    "keyword": "expense tracker",
+                    "frequency": 156
+                },
+                {
+                    "keyword": "save",
+                    "frequency": 139
+                },
+                {
+                    "keyword": "income",
+                    "frequency": 125
+                },
+                {
+                    "keyword": "planner",
+                    "frequency": 121
+                },
+                {
+                    "keyword": "manage",
+                    "frequency": 120
+                },
+                {
+                    "keyword": "personal",
+                    "frequency": 106
+                },
+                {
+                    "keyword": "bill",
+                    "frequency": 103
+                },
+                {
+                    "keyword": "track your",
+                    "frequency": 86
+                },
+                {
+                    "keyword": "bills",
+                    "frequency": 85
+                },
+                {
+                    "keyword": "money manager",
+                    "frequency": 84
+                },
+                {
+                    "keyword": "control",
+                    "frequency": 84
+                },
+                {
+                    "keyword": "simple",
+                    "frequency": 68
+                },
+                {
+                    "keyword": "save money",
+                    "frequency": 68
+                },
+                {
+                    "keyword": "take",
+                    "frequency": 66
+                },
+                {
+                    "keyword": "budget planner",
+                    "frequency": 66
+                },
+                {
+                    "keyword": "control of",
+                    "frequency": 64
+                },
+                {
+                    "keyword": "daily",
+                    "frequency": 64
+                },
+                {
+                    "keyword": "take control",
+                    "frequency": 63
+                },
+                {
+                    "keyword": "take control of",
+                    "frequency": 62
+                },
+                {
+                    "keyword": "control of your",
+                    "frequency": 62
+                },
+                {
+                    "keyword": "take control of your",
+                    "frequency": 60
+                },
+                {
+                    "keyword": "your money",
+                    "frequency": 59
+                },
+                {
+                    "keyword": "spend",
+                    "frequency": 59
+                },
+                {
+                    "keyword": "track spending",
+                    "frequency": 58
+                },
+                {
+                    "keyword": "personal finance",
+                    "frequency": 57
+                },
+                {
+                    "keyword": "business",
+                    "frequency": 56
+                },
+                {
+                    "keyword": "track expenses",
+                    "frequency": 53
+                },
+                {
+                    "keyword": "manage your",
+                    "frequency": 53
+                },
+                {
+                    "keyword": "tracking",
+                    "frequency": 52
+                },
+                {
+                    "keyword": "management",
+                    "frequency": 50
+                },
+                {
+                    "keyword": "budgeting",
+                    "frequency": 50
+                },
+                {
+                    "keyword": "your expenses",
+                    "frequency": 48
+                },
+                {
+                    "keyword": "smart",
+                    "frequency": 48
+                },
+                {
+                    "keyword": "ai",
+                    "frequency": 48
+                },
+                {
+                    "keyword": "organizer",
+                    "frequency": 46
+                },
+                {
+                    "keyword": "easily",
+                    "frequency": 46
+                },
+                {
+                    "keyword": "easy",
+                    "frequency": 45
+                },
+                {
+                    "keyword": "money tracker",
+                    "frequency": 43
+                },
+                {
+                    "keyword": "spending tracker",
+                    "frequency": 42
+                },
+                {
+                    "keyword": "budget tracker",
+                    "frequency": 42
+                },
+                {
+                    "keyword": "finances",
+                    "frequency": 41
+                },
+                {
+                    "keyword": "saving",
+                    "frequency": 36
+                },
+                {
+                    "keyword": "financial",
+                    "frequency": 31
+                },
+                {
+                    "keyword": "track your expenses",
+                    "frequency": 31
+                },
+                {
+                    "keyword": "savings",
+                    "frequency": 31
+                },
+                {
+                    "keyword": "expense manager",
+                    "frequency": 30
+                },
+                {
+                    "keyword": "cash",
+                    "frequency": 28
+                },
+                {
+                    "keyword": "bill organizer",
+                    "frequency": 27
+                },
+                {
+                    "keyword": "pay",
+                    "frequency": 27
+                },
+                {
+                    "keyword": "reminder",
+                    "frequency": 26
+                },
+                {
+                    "keyword": "split",
+                    "frequency": 26
+                },
+                {
+                    "keyword": "income tracker",
+                    "frequency": 24
+                },
+                {
+                    "keyword": "subscriptions",
+                    "frequency": 23
+                },
+                {
+                    "keyword": "plan",
+                    "frequency": 23
+                },
+                {
+                    "keyword": "calendar",
+                    "frequency": 23
+                },
+                {
+                    "keyword": "budgets",
+                    "frequency": 22
+                },
+                {
+                    "keyword": "your income",
+                    "frequency": 22
+                },
+                {
+                    "keyword": "log",
+                    "frequency": 22
+                },
+                {
+                    "keyword": "time",
+                    "frequency": 21
+                },
+                {
+                    "keyword": "monthly",
+                    "frequency": 21
+                },
+                {
+                    "keyword": "goals",
+                    "frequency": 21
+                },
+                {
+                    "keyword": "your finances",
+                    "frequency": 21
+                },
+                {
+                    "keyword": "budget app",
+                    "frequency": 20
+                },
+                {
+                    "keyword": "bill tracker",
+                    "frequency": 20
+                },
+                {
+                    "keyword": "made",
+                    "frequency": 20
+                },
+                {
+                    "keyword": "expenses easily",
+                    "frequency": 20
+                },
+                {
+                    "keyword": "subscription",
+                    "frequency": 19
+                },
+                {
+                    "keyword": "invest",
+                    "frequency": 19
+                },
+                {
+                    "keyword": "expense tracking",
+                    "frequency": 19
+                },
+                {
+                    "keyword": "worth",
+                    "frequency": 18
+                },
+                {
+                    "keyword": "receipts",
+                    "frequency": 18
+                },
+                {
+                    "keyword": "your spending",
+                    "frequency": 18
+                },
+                {
+                    "keyword": "track bills",
+                    "frequency": 18
+                },
+                {
+                    "keyword": "credit",
+                    "frequency": 18
+                },
+                {
+                    "keyword": "bank",
+                    "frequency": 18
+                },
+                {
+                    "keyword": "track income",
+                    "frequency": 17
+                },
+                {
+                    "keyword": "expense management",
+                    "frequency": 17
+                },
+                {
+                    "keyword": "net",
+                    "frequency": 16
+                },
+                {
+                    "keyword": "net worth",
+                    "frequency": 16
+                },
+                {
+                    "keyword": "organize",
+                    "frequency": 16
+                },
+                {
+                    "keyword": "you",
+                    "frequency": 16
+                },
+                {
+                    "keyword": "more",
+                    "frequency": 16
+                },
+                {
+                    "keyword": "subscription manager",
+                    "frequency": 15
+                },
+                {
+                    "keyword": "your personal",
+                    "frequency": 15
+                },
+                {
+                    "keyword": "payments",
+                    "frequency": 15
+                },
+                {
+                    "keyword": "scan",
+                    "frequency": 15
+                },
+                {
+                    "keyword": "mileage",
+                    "frequency": 15
+                },
+                {
+                    "keyword": "reminders",
+                    "frequency": 15
+                },
+                {
+                    "keyword": "build",
+                    "frequency": 15
+                },
+                {
+                    "keyword": "utilities",
+                    "frequency": 15
+                },
+                {
+                    "keyword": "assistant",
+                    "frequency": 14
+                },
+                {
+                    "keyword": "budget expense",
+                    "frequency": 14
+                },
+                {
+                    "keyword": "friends",
+                    "frequency": 14
+                },
+                {
+                    "keyword": "finance manager",
+                    "frequency": 14
+                },
+                {
+                    "keyword": "finance tracker",
+                    "frequency": 14
+                },
+                {
+                    "keyword": "receipt",
+                    "frequency": 14
+                },
+                {
+                    "keyword": "spending save",
+                    "frequency": 14
+                },
+                {
+                    "keyword": "track spending save",
+                    "frequency": 14
+                },
+                {
+                    "keyword": "way",
+                    "frequency": 14
+                },
+                {
+                    "keyword": "expenses save",
+                    "frequency": 14
+                },
+                {
+                    "keyword": "budget manager",
+                    "frequency": 14
+                },
+                {
+                    "keyword": "fast",
+                    "frequency": 14
+                },
+                {
+                    "keyword": "bill manager",
+                    "frequency": 13
+                },
+                {
+                    "keyword": "tax",
+                    "frequency": 13
+                },
+                {
+                    "keyword": "manage your money",
+                    "frequency": 13
+                },
+                {
+                    "keyword": "banking",
+                    "frequency": 13
+                },
+                {
+                    "keyword": "your budget",
+                    "frequency": 13
+                },
+                {
+                    "keyword": "loans",
+                    "frequency": 13
+                },
+                {
+                    "keyword": "your expense",
+                    "frequency": 13
+                },
+                {
+                    "keyword": "money manager expense",
+                    "frequency": 12
+                },
+                {
+                    "keyword": "manager expense",
+                    "frequency": 12
+                },
+                {
+                    "keyword": "money saving",
+                    "frequency": 12
+                },
+                {
+                    "keyword": "track your income",
+                    "frequency": 12
+                },
+                {
+                    "keyword": "debt",
+                    "frequency": 12
+                },
+                {
+                    "keyword": "bill reminder",
+                    "frequency": 12
+                },
+                {
+                    "keyword": "made easy",
+                    "frequency": 12
+                },
+                {
+                    "keyword": "with friends",
+                    "frequency": 12
+                },
+                {
+                    "keyword": "track subscriptions",
+                    "frequency": 12
+                },
+                {
+                    "keyword": "tracker budget",
+                    "frequency": 12
+                },
+                {
+                    "keyword": "travel",
+                    "frequency": 12
+                },
+                {
+                    "keyword": "track spending save money",
+                    "frequency": 12
+                },
+                {
+                    "keyword": "spending save money",
+                    "frequency": 12
+                },
+                {
+                    "keyword": "track expenses save",
+                    "frequency": 12
+                },
+                {
+                    "keyword": "expenses save money",
+                    "frequency": 12
+                },
+                {
+                    "keyword": "card",
+                    "frequency": 12
+                },
+                {
+                    "keyword": "goal",
+                    "frequency": 11
+                },
+                {
+                    "keyword": "track budget",
+                    "frequency": 11
+                },
+                {
+                    "keyword": "tracker money",
+                    "frequency": 11
+                },
+                {
+                    "keyword": "wallet",
+                    "frequency": 11
+                },
+                {
+                    "keyword": "powered",
+                    "frequency": 11
+                },
+                {
+                    "keyword": "calculator",
+                    "frequency": 11
+                },
+                {
+                    "keyword": "your daily",
+                    "frequency": 11
+                },
+                {
+                    "keyword": "payment",
+                    "frequency": 11
+                },
+                {
+                    "keyword": "planner money",
+                    "frequency": 10
+                },
+                {
+                    "keyword": "budget planner money",
+                    "frequency": 10
+                },
+                {
+                    "keyword": "track money",
+                    "frequency": 10
+                },
+                {
+                    "keyword": "home",
+                    "frequency": 10
+                },
+                {
+                    "keyword": "manage money",
+                    "frequency": 10
+                },
+                {
+                    "keyword": "recurring",
+                    "frequency": 10
+                },
+                {
+                    "keyword": "monthly budget",
+                    "frequency": 10
+                },
+                {
+                    "keyword": "personal finance manager",
+                    "frequency": 10
+                },
+                {
+                    "keyword": "monitor",
+                    "frequency": 10
+                },
+                {
+                    "keyword": "spending & save",
+                    "frequency": 10
+                },
+                {
+                    "keyword": "track spending & save",
+                    "frequency": 10
+                },
+                {
+                    "keyword": "track expenses save money",
+                    "frequency": 10
+                },
+                {
+                    "keyword": "manage expenses",
+                    "frequency": 10
+                },
+                {
+                    "keyword": "budgeting app",
+                    "frequency": 10
+                },
+                {
+                    "keyword": "every",
+                    "frequency": 10
+                },
+                {
+                    "keyword": "daily expenses",
+                    "frequency": 10
+                },
+                {
+                    "keyword": "better",
+                    "frequency": 10
+                },
+                {
+                    "keyword": "split bills",
+                    "frequency": 10
+                },
+                {
+                    "keyword": "organize your",
+                    "frequency": 10
+                },
+                {
+                    "keyword": "schedule",
+                    "frequency": 10
+                },
+                {
+                    "keyword": "all",
+                    "frequency": 10
+                },
+                {
+                    "keyword": "habits",
+                    "frequency": 10
+                },
+                {
+                    "keyword": "of your money",
+                    "frequency": 9
+                },
+                {
+                    "keyword": "planner & money",
+                    "frequency": 9
+                },
+                {
+                    "keyword": "budget planner & money",
+                    "frequency": 9
+                },
+                {
+                    "keyword": "never",
+                    "frequency": 9
+                },
+                {
+                    "keyword": "spending manager",
+                    "frequency": 9
+                },
+                {
+                    "keyword": "account",
+                    "frequency": 9
+                },
+                {
+                    "keyword": "budget expense tracker",
+                    "frequency": 9
+                },
+                {
+                    "keyword": "daily expense",
+                    "frequency": 9
+                },
+                {
+                    "keyword": "track expense",
+                    "frequency": 9
+                },
+                {
+                    "keyword": "expense budget",
+                    "frequency": 9
+                },
+                {
+                    "keyword": "manage your expenses",
+                    "frequency": 9
+                },
+                {
+                    "keyword": "accounting",
+                    "frequency": 9
+                },
+                {
+                    "keyword": "track spending & save money",
+                    "frequency": 9
+                },
+                {
+                    "keyword": "spending & save money",
+                    "frequency": 9
+                },
+                {
+                    "keyword": "expenses & save",
+                    "frequency": 9
+                },
+                {
+                    "keyword": "expenses & save money",
+                    "frequency": 9
+                },
+                {
+                    "keyword": "shared",
+                    "frequency": 9
+                },
+                {
+                    "keyword": "loan",
+                    "frequency": 9
+                },
+                {
+                    "keyword": "personal money",
+                    "frequency": 9
+                },
+                {
+                    "keyword": "tracker app",
+                    "frequency": 9
+                },
+                {
+                    "keyword": "to save",
+                    "frequency": 9
+                },
+                {
+                    "keyword": "digital",
+                    "frequency": 9
+                },
+                {
+                    "keyword": "list",
+                    "frequency": 9
+                },
+                {
+                    "keyword": "smart budget",
+                    "frequency": 9
+                },
+                {
+                    "keyword": "shopping",
+                    "frequency": 9
+                },
+                {
+                    "keyword": "earn",
+                    "frequency": 9
+                },
+                {
+                    "keyword": "manager budget",
+                    "frequency": 8
+                },
+                {
+                    "keyword": "take control of your money",
+                    "frequency": 8
+                },
+                {
+                    "keyword": "control of your money",
+                    "frequency": 8
+                },
+                {
+                    "keyword": "budget management",
+                    "frequency": 8
+                },
+                {
+                    "keyword": "money planner",
+                    "frequency": 8
+                },
+                {
+                    "keyword": "personal expense",
+                    "frequency": 8
+                },
+                {
+                    "keyword": "money manager expense tracker",
+                    "frequency": 8
+                },
+                {
+                    "keyword": "manager expense tracker",
+                    "frequency": 8
+                },
+                {
+                    "keyword": "income expense",
+                    "frequency": 8
+                },
+                {
+                    "keyword": "home budget",
+                    "frequency": 8
+                },
+                {
+                    "keyword": "envelope",
+                    "frequency": 8
+                },
+                {
+                    "keyword": "expenses with",
+                    "frequency": 8
+                },
+                {
+                    "keyword": "simple expense",
+                    "frequency": 8
+                },
+                {
+                    "keyword": "expense tracker budget",
+                    "frequency": 8
+                },
+                {
+                    "keyword": "scan receipts",
+                    "frequency": 8
+                },
+                {
+                    "keyword": "cancel",
+                    "frequency": 8
+                },
+                {
+                    "keyword": "your expenses easily",
+                    "frequency": 8
+                },
+                {
+                    "keyword": "tracker money manager",
+                    "frequency": 8
+                },
+                {
+                    "keyword": "notes",
+                    "frequency": 8
+                },
+                {
+                    "keyword": "simply",
+                    "frequency": 8
+                },
+                {
+                    "keyword": "private",
+                    "frequency": 8
+                },
+                {
+                    "keyword": "made simple",
+                    "frequency": 8
+                },
+                {
+                    "keyword": "shop",
+                    "frequency": 8
+                },
+                {
+                    "keyword": "secure",
+                    "frequency": 8
+                },
+                {
+                    "keyword": "expense income",
+                    "frequency": 8
+                },
+                {
+                    "keyword": "group",
+                    "frequency": 8
+                },
+                {
+                    "keyword": "due",
+                    "frequency": 8
+                },
+                {
+                    "keyword": "stay",
+                    "frequency": 8
+                },
+                {
+                    "keyword": "know",
+                    "frequency": 8
+                },
+                {
+                    "keyword": "what",
+                    "frequency": 8
+                },
+                {
+                    "keyword": "grow",
+                    "frequency": 8
+                },
+                {
+                    "keyword": "simple money",
+                    "frequency": 8
+                },
+                {
+                    "keyword": "smarter",
+                    "frequency": 8
+                },
+                {
+                    "keyword": "insights",
+                    "frequency": 8
+                },
+                {
+                    "keyword": "finance management",
+                    "frequency": 8
+                },
+                {
+                    "keyword": "planner app",
+                    "frequency": 7
+                },
+                {
+                    "keyword": "investing",
+                    "frequency": 7
+                },
+                {
+                    "keyword": "spending planner",
+                    "frequency": 7
+                },
+                {
+                    "keyword": "budget spending",
+                    "frequency": 7
+                },
+                {
+                    "keyword": "personal finances",
+                    "frequency": 7
+                },
+                {
+                    "keyword": "spending with",
+                    "frequency": 7
+                },
+                {
+                    "keyword": "with ai",
+                    "frequency": 7
+                },
+                {
+                    "keyword": "budget & expense",
+                    "frequency": 7
+                },
+                {
+                    "keyword": "budget save",
+                    "frequency": 7
+                },
+                {
+                    "keyword": "expense planner",
+                    "frequency": 7
+                },
+                {
+                    "keyword": "reports",
+                    "frequency": 7
+                },
+                {
+                    "keyword": "expense tracker money",
+                    "frequency": 7
+                },
+                {
+                    "keyword": "personal budget",
+                    "frequency": 7
+                },
+                {
+                    "keyword": "easy expense",
+                    "frequency": 7
+                },
+                {
+                    "keyword": "track your expenses easily",
+                    "frequency": 7
+                },
+                {
+                    "keyword": "cards",
+                    "frequency": 7
+                },
+                {
+                    "keyword": "track expenses & save money",
+                    "frequency": 7
+                },
+                {
+                    "keyword": "track expenses & save",
+                    "frequency": 7
+                },
+                {
+                    "keyword": "track your spending",
+                    "frequency": 7
+                },
+                {
+                    "keyword": "control your",
+                    "frequency": 7
+                },
+                {
+                    "keyword": "life",
+                    "frequency": 7
+                },
+                {
+                    "keyword": "impulse",
+                    "frequency": 7
+                },
+                {
+                    "keyword": "save more",
+                    "frequency": 7
+                },
+                {
+                    "keyword": "income tracking",
+                    "frequency": 7
+                },
+                {
+                    "keyword": "keep",
+                    "frequency": 7
+                },
+                {
+                    "keyword": "way to",
+                    "frequency": 7
+                },
+                {
+                    "keyword": "online",
+                    "frequency": 7
+                },
+                {
+                    "keyword": "build credit",
+                    "frequency": 7
+                },
+                {
+                    "keyword": "spending budget",
+                    "frequency": 7
+                },
+                {
+                    "keyword": "clarity",
+                    "frequency": 7
+                },
+                {
+                    "keyword": "spendings",
+                    "frequency": 7
+                },
+                {
+                    "keyword": "tips",
+                    "frequency": 7
+                },
+                {
+                    "keyword": "one",
+                    "frequency": 7
+                },
+                {
+                    "keyword": "tip",
+                    "frequency": 7
+                },
+                {
+                    "keyword": "money manager budget",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "spending manage",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "tracker bill",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "personal expense tracker",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "money expense",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "free",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "your personal finance",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "simple expense tracker",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "report",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "ledger",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "costs",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "track your money",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "spend save",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "track daily",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "save invest",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "bills tracker",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "your goals",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "save spend",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "income expenses",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "spending money",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "stop",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "simplified",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "back",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "wealth",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "to save money",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "manage your expense",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "live",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "can",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "task",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "expense tracker app",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "share",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "personal money manager",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "money with",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "rewards",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "where",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "all your",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "pocket",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "of your finances",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "control of your finances",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "portfolio",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "smartly",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "ease",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "with ease",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "family",
+                    "frequency": 6
+                },
+                {
+                    "keyword": "budget planner money tracker",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "planner money tracker",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "budget planner & money tracker",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "planner & money tracker",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "again",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "budget money",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "note",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "track spending manage",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "organizer money",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "bill organizer money",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "goal tracker",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "budgeting money",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "pro",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "money app",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "buy",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "easily track",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "expenses tracker",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "budget & expense tracker",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "monthly budget planner",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "trip",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "at",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "income manager",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "miss",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "never miss",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "miss a",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "never miss a",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "sync",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "payday",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "every dollar",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "dollar",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "daily spending",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "debts",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "money saver",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "saver",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "expense tracker money manager",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "incomes",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "your daily expenses",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "do",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "voice",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "weekly",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "paid",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "manage expense",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "stay on",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "your bills",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "manage your income",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "personal finance tracker",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "make",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "date",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "wellness",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "record",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "smart expense",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "billing",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "saving money",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "miles",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "keep track",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "send",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "smart budget expense",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "smart budget & expense",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "say",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "invoices",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "accounts",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "create",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "investment",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "your finance",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "take control of your finances",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "health",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "personal finance management",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "plan your",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "piggy",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "piggy bank",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "agenda",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "gps",
+                    "frequency": 5
+                },
+                {
+                    "keyword": "budget&expense",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "budget planner app",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "manage budget",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "spending & manage",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "track spending & manage",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "manager bill",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "money budget",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "money goal",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "cashflow",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "spending budgeting",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "finance assistant",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "expense bill",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "smart money",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "fun",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "bill planner",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "budget bill",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "financial manager",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "track spending with",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "finance money",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "finance made",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "finance made easy",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "split expenses",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "tool",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "together",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "money save",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "book",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "cancel subscriptions",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "bills manager",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "settle",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "up",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "mile",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "budget planner money manager",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "planner money manager",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "splitter",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "minimalist",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "invoicing",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "of your spending",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "finance planner",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "expenses simply",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "simple budget",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "your financial",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "save your money",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "save your",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "track spending money",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "stop impulse",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "ai expense",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "money management",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "more money",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "business expense",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "budget income",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "expense money",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "achieve",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "in control",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "monitor your",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "go",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "flow",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "cash flow",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "get paid",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "track spend",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "shared expenses",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "reach",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "to track",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "manager budget planner",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "your personal finance manager",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "what you",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "you can",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "can spend",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "you can spend",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "daily planner",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "analyze",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "like",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "debit",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "debit card",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "from",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "due date",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "simple bill",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "grow your",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "financial wellness",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "borrow",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "app for",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "track spending budget",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "track your finances",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "start",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "household",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "day",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "spend management",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "future",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "learn",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "your spendings",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "today",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "track of",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "keep track of",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "track of your",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "keep track of your",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "find",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "tasks",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "expense & budget",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "recurring bills",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "your pocket",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "app to",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "lifestyle",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "grocery",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "earnings",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "habit",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "real",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "investments",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "tracker for",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "counter",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "group expenses",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "personal banking",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "mobile",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "renewals",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "to-do",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "planning",
+                    "frequency": 4
+                },
+                {
+                    "keyword": "budget&expense tracker",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "track spending manage budget",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "spending manage budget",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "track spending & manage budget",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "spending & manage budget",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "spending bills",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "cute",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "expense tracker bill",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "organizer & money",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "bill organizer & money",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "simple income",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "financial organizer",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "tracker pro",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "personal finance assistant",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "money & expense",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "track save",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "budget & bill",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "financial planner",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "manage personal",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "personal finance made easy",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "personal finance made",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "track budget save",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "money track",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "ads",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "no ads",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "expenses with friends",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "tracker daily",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "bookkeeping",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "expense report",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "ai assistant",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "easily manage",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "scanner",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "track mileage",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "receipts track",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "scan receipts track",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "travel expense",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "management made",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "expense management made",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "check",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "bill monitor",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "stopper",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "software",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "tax tracker",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "easy way",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "a bill",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "envelope budgeting",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "phone",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "spending log",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "tracker budget app",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "budget planner & money manager",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "planner & money manager",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "automate",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "bill splitter",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "ai money",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "ultimate",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "expenses plan",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "track expenses plan",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "reminders calendar",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "alerts",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "beat",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "zero",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "budget with",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "simple daily",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "personal budgeting",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "spending tracker money",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "manage your expenses simply",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "your expenses simply",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "budget personal",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "the money",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "saving app",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "quickly",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "expenses and",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "and save",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "track expenses and",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "and save money",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "savings manager",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "track your daily",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "finances made",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "spend budget",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "receipt manager",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "of your expenses",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "manage your money better",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "money better",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "your money better",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "track income expenses",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "a simple",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "smart bill",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "bill payment",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "ai expense tracker",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "bills track",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "buying",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "impulse buying",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "business expense tracker",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "get back in control",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "get back",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "back in",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "get back in",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "back in control",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "couples",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "stock",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "manager money",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "it",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "top",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "tracker save",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "expense tracker save",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "credit budget",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "money manager budget planner",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "securely",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "know what",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "know what you",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "what you can",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "know what you can",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "what you can spend",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "starts",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "here",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "starts here",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "taxes",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "track analyze",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "spending stay",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "track spending stay",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "monthly bill",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "coach",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "sharing",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "budget tracking",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "allowance",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "tracker & budget",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "way to save",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "manager tracker",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "money manager tracker",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "envelope budget",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "offline",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "or",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "daily income",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "smart expense tracker",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "your personal money",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "enjoy",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "managing",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "easy money",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "simplify",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "tracker & bill",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "checking",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "know where",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "start saving",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "business spend management",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "business spend",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "dates",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "due dates",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "matters",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "fast cash",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "money bills",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "budget planner expense tracker",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "planner expense",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "budget planner expense",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "planner expense tracker",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "driving",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "expense budgeting",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "apps",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "hustle",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "manage bills",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "see",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "money in",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "smart budget expense tracker",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "smart budget & expense tracker",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "your travel",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "set",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "salary",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "your business",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "fast expense",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "trips",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "events",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "your personal expense tracker",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "your personal expense",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "auto",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "personal financial",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "payment reminder",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "your recurring",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "tracker expense",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "save money with",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "in your pocket",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "money spending",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "timesheet",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "focused",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "forecast",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "finance app",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "time tracking",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "take control of your spending",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "control of your spending",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "tip tracker",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "tracking your",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "count",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "income & expenses",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "powered expense",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "anywhere",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "habit tracker",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "advances",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "money for",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "that",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "bill reminders",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "track tips",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "gas",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "your time",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "manage your daily",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "spending with ease",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "money easily",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "your money easily",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "car",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "freelance",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "before",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "simple spending",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "track budgets",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "system",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "coupons",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "view",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "goes",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "where your",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "money goes",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "where your money",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "your money goes",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "where your money goes",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "simple money manager",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "spend smart",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "server",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "clarity for",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "take control of your hearing",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "hearing",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "your hearing",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "of your hearing",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "control of your hearing",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "all your finances",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "deals",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "countdown",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "for your money",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "to do",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "do list",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "to do list",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "take control of your health",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "your health",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "of your health",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "control of your health",
+                    "frequency": 3
+                },
+                {
+                    "keyword": "income spending",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "about",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "spending net",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "spending net worth",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "money note",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "bills organizer",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "planner bill",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "planner bill manager",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "bills money",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "expense app",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "ad",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "ad budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "ad budget app",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "no ad budget app",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "no ad",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "no ad budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "bill organizer money tracker",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "organizer money tracker",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "bill organizer & money tracker",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "organizer & money tracker",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "money goal tracker",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manager planner",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "income expense manager",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "spending income",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "spending budgeting money",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "bill organizer budget planner",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "organizer budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "bill organizer budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "organizer budget planner",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "subscriptions bills",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "debt tracker",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "income & expense",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "account budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "account budget bill",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "account budget & bill",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "ok",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "saving planner",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "bill organizer money manager",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "organizer money manager",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "home budget expense tracker",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "home budget expense",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "home budget & expense tracker",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "home budget & expense",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "plan spending",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "spending pay",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "on time",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "money cash",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "money track expenses",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "bestie",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "based",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "pay tracker",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "personal finance/money manager",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "finance/money",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "personal finance/money",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "finance/money manager",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manage recurring",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "recurring bill",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "bill payments",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "groups",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "repeat",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "saving is fun!",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "fun!",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "saving is",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "is fun!",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "split expenses with friends",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "split expenses with",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "daily finance",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "tracker daily finance",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manager finance",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "money manager finance",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "ocr",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "budget management bookkeeping",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "management bookkeeping",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "expense spending",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "spending expense",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "tracker & money",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track expense cashflow",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "expense cashflow",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "personal budgets",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "trip expenses",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "vacation",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "budgeting with",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "budgeting with ai",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "organize expenses",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "personal budget planner",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "easily manage your",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "receipt scanner",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "scan receipts track mileage",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "receipts track mileage",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "chat",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "expense management made easy",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "management made easy",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "small",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "small business",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "register",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "bills reminder",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "bill manager bill monitor",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "bill manager bill",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manager bill monitor",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "bill manager and bill monitor",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manager and",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "and bill",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "bill manager and",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manager and bill",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "and bill monitor",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "bill manager and bill",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manager and bill monitor",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manager - budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "money manager - budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "subscription stopper",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track spending bills",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track finance",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "business finances",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "corporate",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "corporate cards",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "smart track",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "the easy",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "the easy way",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "bill again",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "miss a bill",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "a bill again",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "never miss a bill",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your cash",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your phone",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "bills budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "spending tracker budget app",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "spending tracker budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "best",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "best personal",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your savings",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "cost",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "spending tracking",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "tracking made",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "app expense",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "budget app expense",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "app & expense",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "budget app & expense",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "expense manager budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your ultimate",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "money manager every dollar",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manager every",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "money manager every",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manager every dollar",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "expenses & plan",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track expenses & plan",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "simple finance",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track daily spending",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "expense log",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track finances",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "spending saving",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "spending saving net worth",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "saving net",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "spending saving net",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "saving net worth",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "change",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "daily budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "personal finance assistant ai",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "assistant ai",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "finance assistant ai",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manager smart",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "smart spending",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "spending tracker money manager",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "simple budget tracker",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "home budget personal finance",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "home budget personal",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "budget personal finance",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "home budget & personal finance",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "budget & personal",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "home budget & personal",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "budget & personal finance",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "plan save",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "bills monitor",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your personal budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "invest money",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "money saving app",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "the simple",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "spending!",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track expenses and save money",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "expenses and save",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track expenses and save",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "expenses and save money",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "bills savings",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "expense save",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your incomes",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "budgeting money saving",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track daily expenses",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "quick",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track your daily expenses",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "finances made simple",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "income spend",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "budget your",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "expenses budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "plan track",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "price",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "simpler",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "spending money tracker",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "spending & money",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track spending & money",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "a simple expense tracker",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "a simple expense",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your smart",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "reminder app",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "bill reminder app",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "buys",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "impulse buys",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "stop impulse buys",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manage save",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "management simplified",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "smart ai",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "save more money",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "now",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "later",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "pay later",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "split bills track expenses",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "split bills track",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "bills track expenses",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "and track",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "and track expenses",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "stop impulse buying",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "for every",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "for every dollar",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "achieve your",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "super",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "expense tracker pay",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "tracker pay",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "note finance",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manager home",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manager home budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track group",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your voice",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "with your voice",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "challenge",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "no spend",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "control your spending",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track spend save",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "groceries",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "kawaii",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "kawaii budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your wallet",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "monthly spending",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "spending app",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "income planner",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "achieve goals",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "income money",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "income money manager",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "scan receipt",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "expense with ai",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "expense with",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "assets",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manage expenses save money",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manage expenses save",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manage expenses & save money",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manage expenses & save",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "richer",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "money reach",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "save money track",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manager & money",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "simple private",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "paychecks",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "ai receipt",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "on top",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "stay on top",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "income!",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "easy way to",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "way to track",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "expense tracker save money",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "tracker save money",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "spend notes",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "smart personal",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "smart personal finance",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "tracker finance",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "pay bills",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "organize your expenses",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "remember",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "split costs",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "for money",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "online banking",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "easy bill",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "savings goal",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "by saving",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "tracker savings",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "expense tracker savings",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "tracker & savings",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "expense tracker & savings",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "journal",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "routine",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "list notes",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "finance expense",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track spending stay on budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "on budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "spending stay on",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "stay on budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track spending stay on",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "spending stay on budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "schedule planner",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "bill expense",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "bill expense tracker",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "money goals",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "spending coach",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manage your budget easily",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "budget easily",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manage your budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your budget easily",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "spend tracker",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "mileage tracking",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "daily expense tracker",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "debit card allowance chores",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "chores",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "card allowance",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "allowance chores",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "debit card allowance",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "card allowance chores",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "from your",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "build credit budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "a due",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "miss a due",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "a due date",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "never miss a due",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "miss a due date",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "simple bill tracker",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "expense tracker & budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "tracker & budget app",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "bill tracking",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "fun way",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "way to save money",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "for all",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "money your",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your way",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your money your",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "money manager bills",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manager bills",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "log your",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manage spending",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "split the",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "receipt tracker",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "bills with",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "split bills with",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "daily schedule",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "wallet budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your personal money manager",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "data",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your data",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "loan money",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "tracker]",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "mileage tracker",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "as",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "simple money tracker",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "payment tracker",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "feel",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "terms",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "loans cards",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "put",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "bill calendar",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "late",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "fee",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "never pay",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "easily track your",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "now!",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "control your money",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "expenses wallet",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "schedule list",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "day organizer",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "schedule list day organizer",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "list day",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "schedule list day",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "list day organizer",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "schedule list & day organizer",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "list & day",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "schedule list & day",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "list & day organizer",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "my money",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "private bill",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "spending easily",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "win",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "$$",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "bills save",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "bills save money",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "optimize",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manage your personal finances",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manage your personal",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your personal finances",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "expense savings",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "management app",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "excess",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "bank account",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "know what you can spend today",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "spend today",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "can spend today",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "you can spend today",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manage all",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track driving",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "score",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "credit score",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "keep track of your expenses",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track of your expenses",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "budget bill tracker",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "cashback",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "no bank",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "mastery",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "moments",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "bill budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "effortlessly",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "sharing expenses",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "budget spending tracker",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track payments",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "money manager & budget planner",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manager & budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "money manager & budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manager & budget planner",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "subs",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "grow your money",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "like a",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your money in",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "save smart",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manual",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "budget plan",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your future",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "expenses invoices",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "travel expenses",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your travel expenses",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "planner save",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "planner save money",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "money tracking",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "solution",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "rent",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "debt free",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "expenses smart",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track expenses smart",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your expenses with",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track your expenses with",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "platform",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "expense & income",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "saving for",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "analytics",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "easy expense budget tracker",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "easy expense budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "expense budget tracker",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "easy expense & budget tracker",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "easy expense & budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "expense & budget tracker",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "easiest",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "easiest expense",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track your net worth",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your net",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track your net",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your net worth",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "personal loans",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "personal financial manager",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "a budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "early",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "early payday",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manage your recurring bills",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manage your recurring",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your recurring bills",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "spend smarter",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "lists",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manage your spendings",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "unlock your employer benefits!",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "unlock",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "employer",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "benefits!",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "unlock your",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your employer",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "employer benefits!",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "unlock your employer",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your employer benefits!",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "handled",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your pay",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "pay your",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "split your expenses",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "split your",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "fuel",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "forecast money",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "finance with",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "say save grow",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "say save",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "save grow",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manage expenses easily",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "expense finance",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "finance budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "clear",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "easy expense tracker",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "expense easily",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your earnings",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "side",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "side hustle",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "built",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "gig",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "ai powered",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "ai powered expense",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "for saving",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "productivity",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "just",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "powered budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "travel spending",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "advisor",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "ai insights",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "save money for",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "in one",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "one app",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "advance",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "cash advance",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "interest",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "fixed",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "confidence",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "with confidence",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "bank borrow",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "money?",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "most",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "powerful",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "the most",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "first",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "predict",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "ai bill",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "subscription tracker",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "save on",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "on grocery",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "to pay",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "money earn",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "earn rewards",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "money build",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "spend smartly",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "income tracker app",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "work",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "pdf",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "simple way",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "down",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "zen",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "digital calendar",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your calendar",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "faster",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "expense income tracker",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manage your daily expenses",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "splitting",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "budgeting & money",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "month",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "us",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "with us",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your spending with",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track your spending with",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "daily expense budget planner",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "daily expense budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "expense budget planner",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "daily expense & budget planner",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "daily expense & budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "expense & budget planner",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "save smartly",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manage your money easily",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "spend invest",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "money expense manager",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track business",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track freelance",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track your tips",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your tips",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "smart tracker",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "smart tracker for",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track income expenses easily",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "income expenses easily",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track income & expenses easily",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track income & expenses",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "income & expenses easily",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track your business",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "crypto",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "portfolio tracker",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "dividend",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "saving habits",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "app to track",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "tracker income",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "how",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "much",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "how much",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "much you",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "how much you",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "beat impulse",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "before you",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "you spend",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "use",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "easy to",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "to use",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "easy to use",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "scanning",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "privacy",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your privacy",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "take control of your budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "of your budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "control of your budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "friendly",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "market",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "news",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "sales",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "business banking",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "invest in",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "personal business",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "instant",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track your payments",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your payments",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "bills reminders",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "group expenses easily",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track split",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "share expenses",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manage your bills",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "tracking your money",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your bank in your pocket",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your bank",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "bank in",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your bank in",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "bank in your",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your bank in your",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "bank in your pocket",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "log miles",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track you",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "week",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "out",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "finances!",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your finances!",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "to-do list",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "buddy",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track expenses easily",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "expert",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "expenses with ease",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "gain",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "food",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "plan budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "simply track",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "addiction",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "stocks",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manage your finances",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "waiter",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "clock",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track spending with ease",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "revenue",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "analysis",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "spendings easily",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your spendings easily",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "financial management",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "file",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "return",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "file your",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "tax return",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "days",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "budget manage",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "pause",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your family",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "expenses budgets",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "budget smarter",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "smarter spend",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "chart",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "safely",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "logging",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "benefits",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "game",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "new",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "invoice",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "maker",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "easy control",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "secure banking",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "convenient",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "the go",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "on the go",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "p2p",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "easy budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "effectively",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "tab",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "surveys",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "reach your",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "manage subscriptions",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track spending goals",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "spending goals",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "bill management",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "tally",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "vehicle",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "vehicle expenses",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "monthly spend",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "reminders tasks",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "organize your recipes",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "recipes",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your recipes",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track your cycle",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "cycle",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "your cycle",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "ovulation",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "daily agenda",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "checklist",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "submit",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "plan your budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "minute",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track spending money manager",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "spending money manager",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track your expense",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "nutrition",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "nutrition tracker",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "running",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "location",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "budget bills",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "in real",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "real time",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "in real time",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "per",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "expenses made",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "track your budget",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "simplify your",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "budget debt",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "air",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "clarity for your money",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "clarity for your",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "drinking",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "take control of your time",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "of your time",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "control of your time",
+                    "frequency": 2
+                },
+                {
+                    "keyword": "smart bill expense tracker",
+                    "frequency": 1
+                },
+                {
+                    "keyword": "smart bill expense",
+                    "frequency": 1
+                },
+                {
+                    "keyword": "smart bill & expense tracker",
+                    "frequency": 1
+                },
+                {
+                    "keyword": "bill & expense",
+                    "frequency": 1
+                },
+                {
+                    "keyword": "smart bill & expense",
+                    "frequency": 1
+                },
+                {
+                    "keyword": "bill & expense tracker",
+                    "frequency": 1
+                }
+            ],
+            "rounds": [
+                {
+                    "round": 0,
+                    "intentsSearched": 7,
+                    "appsThisRound": 1013,
+                    "newApps": 1013,
+                    "totalApps": 1013,
+                    "newPercent": 100,
+                    "ms": 59708
+                },
+                {
+                    "round": 1,
+                    "intentsSearched": 30,
+                    "appsThisRound": 3117,
+                    "newApps": 2499,
+                    "totalApps": 3512,
+                    "newPercent": 80,
+                    "ms": 144106
+                },
+                {
+                    "round": 2,
+                    "intentsSearched": 30,
+                    "appsThisRound": 2565,
+                    "newApps": 1126,
+                    "totalApps": 4638,
+                    "newPercent": 44,
+                    "ms": 59228
+                },
+                {
+                    "round": 3,
+                    "intentsSearched": 30,
+                    "appsThisRound": 3096,
+                    "newApps": 1384,
+                    "totalApps": 6022,
+                    "newPercent": 45,
+                    "ms": 71685
+                },
+                {
+                    "round": 4,
+                    "intentsSearched": 30,
+                    "appsThisRound": 3581,
+                    "newApps": 1747,
+                    "totalApps": 7769,
+                    "newPercent": 49,
+                    "ms": 91168
+                }
+            ]
+        }
+    ],
+    "timings": {
+        "totalMs": 435083,
+        "geminiMs": 6723,
+        "miningMs": 426080,
+        "perStore": {
+            "us": 2280
+        }
+    }
+}

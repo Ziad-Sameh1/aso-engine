@@ -34,11 +34,13 @@ export function calculateOpportunity(popularity, difficulty) {
   const gap = popularity - difficulty;
   opportunity += gap * 0.5;
 
-  // 4. THE DEAD END PENALTY (Updated)
-  if (popularity < 25) {
-    // The Absolute Floor: If there's no volume, it's dead. Period.
-    // Even if difficulty is 0, crush the score.
-    opportunity = opportunity * 0.2;
+  // 4. DEAD KEYWORD GATES
+  if (popularity < 15) {
+    // Hard shutdown: no volume = no opportunity. Period.
+    return 1;
+  } else if (popularity < 25) {
+    // The Absolute Floor: barely any volume, crush the score.
+    opportunity = opportunity * 0.15;
   } else if (popularity < 35 && gap < 0) {
     // The Friction Trap: Low volume + Hard competition
     opportunity = opportunity * 0.3;

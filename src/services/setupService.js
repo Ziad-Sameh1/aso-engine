@@ -1,12 +1,49 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { scrapeAppPageMetadata, fetchSearchHtml, extractSearchResults, getSearchRankings } from "./appstore.js";
-import { mineSuggestions } from "./miningService.js";
 import { scorePopularity } from "./resultsPopularityService.js";
 import { calculateDifficultyScore } from "./resultsDifficultyService.js";
 import { storeToLocale, relevanceMultiplier, hydrateSubtitles } from "./resultsShared.js";
 import { calculateOpportunity } from "./opportunity.js";
 
 import { config } from "../config/index.js";
+
+export const DEFAULT_STORES = [
+  // English-speaking
+  "us", // United States
+  "gb", // United Kingdom
+  "ca", // Canada
+  "au", // Australia
+  "nz", // New Zealand
+  "ie", // Ireland
+  // Asia-Pacific
+  "sg", // Singapore
+  "jp", // Japan
+  "kr", // South Korea
+  // Western Europe
+  "de", // Germany
+  "fr", // France
+  "nl", // Netherlands
+  "ch", // Switzerland
+  "se", // Sweden
+  "no", // Norway
+  "dk", // Denmark
+  // Emerging markets
+  "in", // India
+  "br", // Brazil
+  "mx", // Mexico
+  "id", // Indonesia
+  "tr", // Turkey
+  "th", // Thailand
+  "vn", // Vietnam
+  // Rest of Europe
+  "be", // Belgium
+  "at", // Austria
+  "fi", // Finland
+  "pl", // Poland
+  "pt", // Portugal
+  "it", // Italy
+  "es", // Spain
+];
 
 const STOP_WORDS = new Set([
   "a", "an", "the", "and", "or", "but", "for", "nor", "so", "yet",
@@ -73,7 +110,7 @@ function extractSeedKeywords(intentTopApps) {
  * storeCodes: string[] — all store codes to generate localized intents for
  * Returns: { descriptionTokens: string[], storeIntents: Array<{ store, localizedIntents }> }
  */
-async function extractStoreDataFromUSMeta({ usMeta, usTitleTokens, usSubtitleTokens, storeCodes }) {
+export async function extractStoreDataFromUSMeta({ usMeta, usTitleTokens, usSubtitleTokens, storeCodes }) {
   if (!config.geminiApiKey) throw new Error("GEMINI_API_KEY is not configured.");
 
   const genAI = new GoogleGenerativeAI(config.geminiApiKey);
@@ -172,9 +209,9 @@ export async function searchIntentTopApps(intents, store = "us") {
   return results;
 }
 
-export async function setupApp(_pg, redis, { appleId, stores = [] }) {
+export async function setupApp(_pg, _redis, { appleId, stores = [] }) {
   const setupStartMs = performance.now();
-  const targetStores = stores.length > 0 ? stores : ["us"];
+  const targetStores = stores.length > 0 ? stores : DEFAULT_STORES;
   const storeTimings = Object.fromEntries(targetStores.map((s) => [s, {}]));
 
   // Scrape all stores in parallel
@@ -230,83 +267,21 @@ export async function setupApp(_pg, redis, { appleId, stores = [] }) {
   // Build a lookup for the enriched found stores
   const foundMap = Object.fromEntries(foundWithTokens.map((r) => [r.store, r]));
 
-  // Mine Apple Suggest (3 levels, Gemini-cleaned) for top seed keywords per store
-  // Shared limiter ensures all stores together stay within one concurrency budget
-  const SEED_LIMIT = 25;
-  const sharedMiningLimit = createLimiter(config.discoverySearchConcurrency);
-  const minedMap = Object.fromEntries(
-    await Promise.all(
-      foundWithTokens.map(async ({ store }) => {
-        const t0 = performance.now();
-        const intentTopApps = intentTopAppsMap[store] ?? [];
-        const seeds = extractSeedKeywords(intentTopApps);
-        const seedTokens = seeds.slice(0, SEED_LIMIT).map((s) => s.token);
-
-        if (seedTokens.length === 0) {
-          storeTimings[store].miningMs = Math.round(performance.now() - t0);
-          return [store, { seeds, minedTerms: { L1: [], L2: [], L3: [] } }];
-        }
-
-        console.log(`[setup] ${store}: mining Apple Suggest (3 levels) for ${seedTokens.length} seed tokens`);
-        const { searchTerms: minedTerms } = await mineSuggestions(seedTokens, store, redis, usEntry.meta, sharedMiningLimit);
-        storeTimings[store].miningMs = Math.round(performance.now() - t0);
-        const totalMined = minedTerms.L1.length + minedTerms.L2.length + minedTerms.L3.length;
-        console.log(`[setup] ${store}: mined ${totalMined} cleaned terms (L1: ${minedTerms.L1.length}, L2: ${minedTerms.L2.length}, L3: ${minedTerms.L3.length})`);
-        return [store, { seeds, minedTerms }];
-      })
-    )
-  );
-
-  let callsCount = 0;
-  let searchHtmlCount = 0;
-  let suggestionApiCount = 0;
-
-  // Count search HTML calls from intent searches
-  for (const [, topApps] of Object.entries(intentTopAppsMap)) {
-    searchHtmlCount += topApps.length;
-  }
-
-  // Count suggestion API calls from mined terms (each seed/L1/L2 term = 1 Apple Suggest call)
-  for (const [, { seeds, minedTerms }] of Object.entries(minedMap)) {
-    const seedCount = seeds.slice(0, SEED_LIMIT).length;
-    const l1Count = minedTerms.L1.length;
-    const l2Count = minedTerms.L2.length;
-    suggestionApiCount += seedCount + l1Count + l2Count;
-  }
-
   const storeResults = scraped.map(({ store, meta }) => {
     const f = foundMap[store];
     const tokens = f
       ? { titleTokens: f.titleTokens, subtitleTokens: f.subtitleTokens, descriptionTokens: geminiResult.descriptionTokens ?? [] }
       : null;
 
-    // Blind 2-token permutations from title/subtitle/description tokens (priority-ordered, capped)
-    const permutationTerms = tokens ? buildSearchTerms(tokens, config.setupMaxPermutations) : [];
-
-    // Mined terms from Apple Suggest (3 levels, Gemini-cleaned)
-    const { seeds = [], minedTerms = { L1: [], L2: [], L3: [] } } = minedMap[store] ?? {};
-    const allMinedFlat = [...minedTerms.L1, ...minedTerms.L2, ...minedTerms.L3];
-
-    // 2-token permutations from seed keywords with frequency > 1 (capped separately)
-    const seedTokens = seeds.filter((s) => s.frequency > 1).map((s) => s.token);
-    const seedPermutations = buildSearchTerms({ titleTokens: seedTokens, subtitleTokens: [], descriptionTokens: [] }, config.setupMaxSeedPermutations);
-
-    // Merge all: token permutations + seed permutations + mined, deduplicated.
-    // Drop any term where a word is a single character (e.g. "food i", "nutrition i").
-    const searchTerms = [...new Set([...permutationTerms, ...seedPermutations, ...allMinedFlat])]
-      .filter((term) => term.split(" ").every((w) => w.length >= 2));
-    callsCount += searchTerms.length;
-
     const intentTopApps = intentTopAppsMap[store] ?? [];
+    const seedKeywords = extractSeedKeywords(intentTopApps);
 
     return {
       store,
-      meta,
       tokens,
-      searchTerms,
       localizedIntents: intentsMap[store] ?? [],
       intentTopApps,
-      seedKeywords: seeds,
+      seedKeywords,
     };
   });
 
@@ -314,9 +289,6 @@ export async function setupApp(_pg, redis, { appleId, stores = [] }) {
 
   return {
     stores: storeResults,
-    callsCount,
-    searchHtmlCount,
-    suggestionApiCount,
     timings: { setupMs, geminiMs, stores: storeTimings },
   };
 }

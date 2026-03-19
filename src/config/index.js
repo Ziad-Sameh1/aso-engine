@@ -72,7 +72,7 @@ export const config = {
   setupMaxPermutations: ttl(process.env.SETUP_MAX_PERMUTATIONS, 800),
   setupMaxSeedPermutations: ttl(process.env.SETUP_MAX_SEED_PERMUTATIONS, 400),
   setupSuggestConcurrency: ttl(process.env.SETUP_SUGGEST_CONCURRENCY, 100),
-  miningConcurrency: ttl(process.env.MINING_CONCURRENCY, 100),
+  miningConcurrency: ttl(process.env.MINING_CONCURRENCY, 50),
   cacheTtlItunesMeta: ttl(process.env.CACHE_TTL_ITUNES_META, 86400), // 24h
   // ShipLift (cold email pipeline)
   shipliftApiUrl: process.env.SHIPLIFT_API_URL,

@@ -55,7 +55,7 @@ export async function searchRoutes(fastify) {
             keyword:  { type: "string", minLength: 1 },
             store:    { type: "string", default: "us" },
             platform: { type: "string", enum: ["iphone", "ipad"], default: "iphone" },
-            limit:    { type: "integer", minimum: 1, maximum: 130, default: 50 },
+            limit:    { type: "integer", minimum: 1, maximum: 200, default: 50 },
           },
         },
         response: {

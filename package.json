@@ -3,7 +3,7 @@
   "type": "module",
   "scripts": {
     "start": "node src/server.js",
-    "dev": "nodemon src/server.js"
+    "dev": "nodemon --exec 'node --max-old-space-size=4096' src/server.js"
   },
   "dependencies": {
     "@fastify/cors": "^11.2.0",
@@ -15,6 +15,7 @@
     "bullmq": "^5.69.3",
     "dotenv": "^17.3.1",
     "fastify": "^5.7.4",
+    "franc": "^6.2.0",
     "https-proxy-agent": "^7.0.6",
     "ioredis": "^5.9.3",
     "node-cron": "^4.2.1",

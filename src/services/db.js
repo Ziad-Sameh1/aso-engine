@@ -641,3 +641,118 @@ export async function getPendingColdEmailLeads(pg, limit = 50) {
   );
   return rows;
 }
+
+// ── App Mined Keywords (dictionary) ──────────────────────────────────────────
+
+/**
+ * Bulk insert mined keywords for an app+store. Only adds new ones (ON CONFLICT DO NOTHING).
+ * keywords = [{ text, frequency }]
+ * Returns count of newly inserted keywords.
+ */
+export async function upsertAppMinedKeywords(pg, appDbId, storefrontId, keywords) {
+  if (!keywords.length) return 0;
+
+  // First upsert all words to get word IDs
+  const texts = keywords.map((k) => k.text);
+  const normTexts = keywords.map((k) => k.text.toLowerCase().trim());
+  const { rows: wordRows } = await pg.query(
+    `INSERT INTO words (text, norm_text)
+     SELECT unnest($1::text[]), unnest($2::text[])
+     ON CONFLICT (norm_text) DO UPDATE SET text = EXCLUDED.text
+     RETURNING id, norm_text`,
+    [texts, normTexts]
+  );
+  const normToWordId = new Map(wordRows.map((r) => [r.norm_text, r.id]));
+
+  // Now insert into app_mined_keywords — skip existing
+  const wordIds = keywords.map((k) => normToWordId.get(k.text.toLowerCase().trim()));
+  const frequencies = keywords.map((k) => k.frequency);
+  const { rowCount } = await pg.query(
+    `INSERT INTO app_mined_keywords (app_id, storefront_id, word_id, frequency)
+     SELECT $1::bigint, $2::bigint, unnest($3::bigint[]), unnest($4::int[])
+     ON CONFLICT (app_id, storefront_id, word_id) DO NOTHING`,
+    [appDbId, storefrontId, wordIds, frequencies]
+  );
+  return rowCount;
+}
+
+/**
+ * Get all mined keywords for an app+store.
+ */
+export async function getAppMinedKeywords(pg, appleId, storeCode) {
+  const { rows } = await pg.query(
+    `SELECT w.text AS keyword, amk.frequency, amk.mined_at
+     FROM app_mined_keywords amk
+     JOIN apps a ON a.id = amk.app_id
+     JOIN storefronts s ON s.id = amk.storefront_id
+     JOIN words w ON w.id = amk.word_id
+     WHERE a.apple_id = $1 AND s.code = $2
+     ORDER BY amk.frequency DESC`,
+    [appleId, storeCode.toLowerCase()]
+  );
+  return rows;
+}
+
+// ── App Competitors ──────────────────────────────────────────────────────────
+
+/**
+ * Replace competitors for an app+store (full refresh).
+ * competitors = [{ appleId, appearanceCount }] — already sorted, top 100.
+ */
+export async function replaceAppCompetitors(pg, appDbId, storefrontId, competitors) {
+  // Delete existing competitors for this app+store
+  await pg.query(
+    `DELETE FROM app_competitors WHERE app_id = $1 AND storefront_id = $2`,
+    [appDbId, storefrontId]
+  );
+
+  if (!competitors.length) return;
+
+  // Upsert competitor apps to get their DB IDs
+  const competitorAppleIds = competitors.map((c) => c.appleId);
+  const { rows: appRows } = await pg.query(
+    `SELECT id, apple_id FROM apps WHERE apple_id = ANY($1::text[])`,
+    [competitorAppleIds]
+  );
+  const appleIdToDbId = new Map(appRows.map((r) => [r.apple_id, r.id]));
+
+  // Filter to only competitors that exist in apps table
+  const valid = competitors
+    .map((c, i) => ({ ...c, rank: i + 1, dbId: appleIdToDbId.get(c.appleId) }))
+    .filter((c) => c.dbId);
+
+  if (!valid.length) return;
+
+  const compDbIds = valid.map((c) => c.dbId);
+  const ranks = valid.map((c) => c.rank);
+  const counts = valid.map((c) => c.appearanceCount);
+
+  await pg.query(
+    `INSERT INTO app_competitors (app_id, competitor_app_id, storefront_id, rank, appearance_count)
+     SELECT $1::bigint, unnest($2::bigint[]), $3::bigint, unnest($4::smallint[]), unnest($5::int[])`,
+    [appDbId, compDbIds, storefrontId, ranks, counts]
+  );
+}
+
+/**
+ * Get competitors for an app aggregated across ALL mined stores.
+ * Ranked by total appearance count (sum across stores).
+ */
+export async function getAppCompetitors(pg, appleId) {
+  const { rows } = await pg.query(
+    `SELECT ca.apple_id, ca.name, ca.developer, ca.genre, ca.icon_url,
+            SUM(ac.appearance_count)::int AS total_appearance_count,
+            COUNT(DISTINCT s.code)::int AS store_count,
+            ARRAY_AGG(DISTINCT s.code ORDER BY s.code) AS stores,
+            MAX(ac.mined_at) AS last_mined_at
+     FROM app_competitors ac
+     JOIN apps a ON a.id = ac.app_id
+     JOIN storefronts s ON s.id = ac.storefront_id
+     JOIN apps ca ON ca.id = ac.competitor_app_id
+     WHERE a.apple_id = $1
+     GROUP BY ca.id, ca.apple_id, ca.name, ca.developer, ca.genre, ca.icon_url
+     ORDER BY total_appearance_count DESC`,
+    [appleId]
+  );
+  return rows;
+}

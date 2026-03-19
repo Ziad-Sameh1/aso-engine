@@ -1,9 +1,12 @@
 import {
   setupApp,
   rankAllStores,
+  DEFAULT_STORES,
 } from "../services/setupService.js";
+import { scrapeAppPageMetadata } from "../services/appstore.js";
 import { getResultsPopularity } from "../services/resultsPopularityService.js";
 import { getResultsDifficulty } from "../services/resultsDifficultyService.js";
+import { config } from "../config/index.js";
 
 export async function setupRoutes(fastify) {
   // ── POST /api/apps/setup ──────────────────────────────────────────────────
@@ -40,90 +43,133 @@ export async function setupRoutes(fastify) {
           .send({ error: "App not found on the App Store." });
       }
 
-      // Log call counts before starting ranking phase
-      console.log(
-        `[setup] Setup complete. Calls count: ${result.callsCount}, Search HTML: ${result.searchHtmlCount}, Suggestion API: ${result.suggestionApiCount}`,
-      );
-
-      // Rank all search terms for all stores in parallel
-      const rankResult = await rankAllStores(
-        appleId,
-        result.stores,
-      );
-
-      // Merge ranking data into store results
-      const rankMap = Object.fromEntries(
-        rankResult.stores.map((r) => [r.store, r]),
-      );
-
-      const mergedStores = result.stores.map((s) => {
-        const ranked = rankMap[s.store];
-        return {
-          store: s.store,
-          meta: s.meta,
-          tokens: s.tokens,
-          localizedIntents: s.localizedIntents,
-          intentTopApps: s.intentTopApps,
-          seedKeywords: s.seedKeywords,
-          keywords: ranked?.keywords ?? [],
-          liveKeywords: ranked?.liveKeywords ?? 0,
-        };
-      });
-
       const totalMs = Math.round(performance.now() - totalT0);
-
-      // Build per-store opportunity keyword list (non-failed, sorted by opportunity desc)
-      const opportunities = {};
-      for (const s of mergedStores) {
-        opportunities[s.store] = s.keywords
-          .filter((k) => k.opportunity != null && k.opportunity > 9)
-          .sort((a, b) => b.opportunity - a.opportunity)
-          .map(({ term, popularity, difficulty, opportunity, rank }) => ({
-            keyword: term,
-            popularity,
-            difficulty,
-            opportunity,
-            rank,
-          }));
-      }
-
-      // Build per-store combined timings (setup phases + ranking phases)
-      const perStoreTimings = {};
-      for (const s of mergedStores) {
-        const setup = result.timings.stores[s.store] ?? {};
-        const ranking = rankMap[s.store]?.timings ?? {};
-        perStoreTimings[s.store] = {
-          scrapeMs: setup.scrapeMs ?? 0,
-          intentSearchMs: setup.intentSearchMs ?? 0,
-          miningMs: setup.miningMs ?? 0,
-          ranking: {
-            totalMs: ranking.totalMs ?? 0,
-            fetchMs: ranking.fetchMs ?? 0,
-            retryMs: ranking.retryMs ?? 0,
-          },
-          totalMs:
-            (setup.scrapeMs ?? 0) +
-            (setup.intentSearchMs ?? 0) +
-            (setup.miningMs ?? 0) +
-            (ranking.totalMs ?? 0),
-        };
-      }
 
       return {
         appleId,
-        callsCount: result.callsCount,
-        searchHtmlCount: result.searchHtmlCount,
-        suggestionApiCount: result.suggestionApiCount,
-        totalLiveKeywords: rankResult.totalLiveKeywords,
         timings: {
           totalMs,
           setupMs: result.timings.setupMs,
           geminiMs: result.timings.geminiMs,
-          rankingMs: rankResult.rankingMs,
-          stores: perStoreTimings,
+          stores: result.timings.stores,
         },
-        opportunities,
-        stores: mergedStores,
+        stores: result.stores.map((s) => ({
+          store: s.store,
+          tokens: s.tokens,
+          localizedIntents: s.localizedIntents,
+          intentTopApps: s.intentTopApps,
+          seedKeywords: s.seedKeywords,
+        })),
+      };
+    },
+  );
+
+  // ── GET /api/apps/:appleId/ratings ───────────────────────────────────────────
+  // Returns rating + review count + breakdown histogram for each requested store.
+  // Query param `stores` is comma-separated (e.g. ?stores=us,gb,jp).
+  // Defaults to DEFAULT_STORES when omitted.
+  fastify.get(
+    "/api/apps/:appleId/ratings",
+    {
+      schema: {
+        params: {
+          type: "object",
+          required: ["appleId"],
+          properties: {
+            appleId: { type: "string", minLength: 1 },
+          },
+        },
+        querystring: {
+          type: "object",
+          properties: {
+            stores: { type: "string" },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const { appleId } = request.params;
+      const { stores: storesParam } = request.query;
+      const proxyUrl = config.proxyUrl ?? null;
+      const totalT0 = performance.now();
+
+      const targetStores = storesParam
+        ? storesParam.split(",").map((s) => s.trim().toLowerCase()).filter(Boolean)
+        : DEFAULT_STORES;
+
+      const storeResults = await Promise.all(
+        targetStores.map(async (store) => {
+          const t0 = performance.now();
+          const meta = await scrapeAppPageMetadata(appleId, store, proxyUrl);
+          const ms = Math.round(performance.now() - t0);
+          if (!meta) return { store, found: false, ms };
+          return {
+            store,
+            found: true,
+            rating: meta.rating,
+            reviewCount: meta.reviewCount,
+            ratingBreakdown: meta.ratingBreakdown,
+            ms,
+          };
+        }),
+      );
+
+      const totalMs = Math.round(performance.now() - totalT0);
+
+      return {
+        appleId,
+        stores: storeResults,
+        timings: {
+          totalMs,
+          perStore: Object.fromEntries(
+            storeResults.map(({ store, ms }) => [store, ms]),
+          ),
+        },
+      };
+    },
+  );
+
+  // ── GET /api/apps/:appleId/version-history ────────────────────────────────────
+  // Returns the full version history for a single storefront.
+  // Query param `store` defaults to "us".
+  fastify.get(
+    "/api/apps/:appleId/version-history",
+    {
+      schema: {
+        params: {
+          type: "object",
+          required: ["appleId"],
+          properties: {
+            appleId: { type: "string", minLength: 1 },
+          },
+        },
+        querystring: {
+          type: "object",
+          properties: {
+            store: { type: "string", default: "us" },
+          },
+        },
+      },
+    },
+    async (request, reply) => {
+      const { appleId } = request.params;
+      const { store = "us" } = request.query;
+      const proxyUrl = config.proxyUrl ?? null;
+      const t0 = performance.now();
+
+      const meta = await scrapeAppPageMetadata(appleId, store, proxyUrl);
+      const ms = Math.round(performance.now() - t0);
+
+      if (!meta) {
+        return reply.code(404).send({ error: "App not found", appleId, store });
+      }
+
+      return {
+        appleId,
+        store,
+        currentVersion: meta.versionHistory?.[0]?.version ?? null,
+        versionHistory: meta.versionHistory ?? [],
+        timings: { ms },
       };
     },
   );

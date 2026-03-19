@@ -78,13 +78,27 @@ export function getProxyAgent() {
   return _proxyAgent;
 }
 
+/**
+ * Destroy the singleton proxy agent, closing all keepAlive sockets.
+ * Call between batches to prevent socket/buffer accumulation during
+ * long-running bulk operations (mining). A fresh agent is lazily
+ * created on the next getProxyAgent() call.
+ */
+export function resetProxyAgent() {
+  if (_proxyAgent) {
+    _proxyAgent.destroy();
+    _proxyAgent = null;
+  }
+}
+
 const PROXY_HEADERS = {
   accept:
     "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
   "accept-language": "en-US,en;q=0.9",
   priority: "u=0, i",
   referer: "https://apps.apple.com/",
-  "sec-ch-ua": '"Not:A-Brand";v="99", "Google Chrome";v="145", "Chromium";v="145"',
+  "sec-ch-ua":
+    '"Not:A-Brand";v="99", "Google Chrome";v="145", "Chromium";v="145"',
   "sec-ch-ua-mobile": "?0",
   "sec-ch-ua-platform": '"macOS"',
   "sec-fetch-dest": "document",
@@ -106,7 +120,11 @@ const PROXY_HEADERS = {
  * @param {string} [platform="iphone"]
  * @returns {Promise<string>} HTML string
  */
-export async function fetchSearchHtmlViaProxy(term, country = "us", platform = "iphone") {
+export async function fetchSearchHtmlViaProxy(
+  term,
+  country = "us",
+  platform = "iphone",
+) {
   const url = `https://apps.apple.com/${country}/${platform}/search?term=${encodeURIComponent(term)}`;
 
   if (!config.proxyUrl) {
@@ -218,16 +236,22 @@ export async function lookupAppMetadata(appIds, country = "us", redis = null) {
       uncachedIds = [];
       for (let i = 0; i < appIds.length; i++) {
         if (cached[i]) {
-          try { metadata[appIds[i]] = JSON.parse(cached[i]); } catch {}
+          try {
+            metadata[appIds[i]] = JSON.parse(cached[i]);
+          } catch {}
         } else {
           uncachedIds.push(appIds[i]);
         }
       }
       if (uncachedIds.length < appIds.length) {
-        console.log(`[appstore] iTunes metadata cache: ${appIds.length - uncachedIds.length} hits, ${uncachedIds.length} misses`);
+        console.log(
+          `[appstore] iTunes metadata cache: ${appIds.length - uncachedIds.length} hits, ${uncachedIds.length} misses`,
+        );
       }
     } catch (err) {
-      console.warn(`[appstore] Redis MGET failed: ${err.message} — fetching all`);
+      console.warn(
+        `[appstore] Redis MGET failed: ${err.message} — fetching all`,
+      );
       uncachedIds = appIds;
     }
   }
@@ -259,7 +283,9 @@ export async function lookupAppMetadata(appIds, country = "us", redis = null) {
             });
             data = resp.data;
           } else {
-            const response = await fetch(url, { headers: { "User-Agent": USER_AGENT } });
+            const response = await fetch(url, {
+              headers: { "User-Agent": USER_AGENT },
+            });
             data = await response.json();
           }
           return data.results ?? [];
@@ -267,7 +293,7 @@ export async function lookupAppMetadata(appIds, country = "us", redis = null) {
           console.warn(`iTunes Lookup failed for batch: ${err.message}`);
           return [];
         }
-      })
+      }),
     );
 
     // Merge results and cache new entries
@@ -296,9 +322,17 @@ export async function lookupAppMetadata(appIds, country = "us", redis = null) {
     if (redis && Object.keys(toCache).length > 0) {
       const pipeline = redis.pipeline();
       for (const [id, entry] of Object.entries(toCache)) {
-        pipeline.setex(`itunes:meta:${country}:${id}`, config.cacheTtlItunesMeta, JSON.stringify(entry));
+        pipeline.setex(
+          `itunes:meta:${country}:${id}`,
+          config.cacheTtlItunesMeta,
+          JSON.stringify(entry),
+        );
       }
-      pipeline.exec().catch((err) => console.warn(`[appstore] Redis cache write failed: ${err.message}`));
+      pipeline
+        .exec()
+        .catch((err) =>
+          console.warn(`[appstore] Redis cache write failed: ${err.message}`),
+        );
     }
 
     // Small delay between waves (not after the last one)
@@ -308,6 +342,106 @@ export async function lookupAppMetadata(appIds, country = "us", redis = null) {
   }
 
   return metadata;
+}
+
+// ── Version history extractor ─────────────────────────────────────────────────
+
+/**
+ * @typedef {"keyword_rank"|"rating"|"review_count"|"visibility"} VersionEventType
+ * @typedef {"up"|"down"|"neutral"} VersionEventDirection
+ *
+ * @typedef {object} VersionEvent
+ * @property {VersionEventType}      type       - Signal category
+ * @property {string}                label      - Human-readable summary, e.g. "+8 for AI Planner"
+ * @property {number|null}           delta      - Numeric change (positive = improvement)
+ * @property {VersionEventDirection} direction  - Derived direction of the change
+ *
+ * @typedef {"positive"|"negative"|"neutral"} VerdictType
+ *
+ * @typedef {object} VersionVerdict
+ * @property {VerdictType}     type    - Overall verdict for this release window
+ * @property {VersionEvent[]}  events  - Individual signals that drove the verdict
+ */
+
+/**
+ * Parse the serialized-server-data blob from an app page HTML and return
+ * the full version history array.
+ *
+ * Each entry: { version, releaseDate, releaseNotes, verdict }
+ *   - version:      "1.0.12"
+ *   - releaseDate:  ISO 8601 string, or null if unparseable
+ *   - releaseNotes: string | null
+ *   - verdict:      { type: "positive"|"negative"|"neutral", events: VersionEvent[] }
+ *
+ * verdict is scaffolded as neutral/empty for now. The goal is to backfill it
+ * with real signal (keyword rank deltas, rating changes, visibility shifts)
+ * measured in the window after each release.
+ *
+ * VersionEvent shape:
+ *   {
+ *     type: "keyword_rank" | "rating" | "review_count" | "visibility",
+ *     label: string,          // human-readable summary, e.g. "+8 for AI Planner"
+ *     delta: number | null,   // numeric change (positive = improvement)
+ *     direction: "up" | "down" | "neutral",
+ *   }
+ *
+ * Returns [] if the blob is absent or the shelf cannot be found.
+ *
+ * @param {string} html
+ * @returns {Array<object>}
+ */
+function extractVersionHistory(html) {
+  const blobMatch = html.match(
+    /<script\s+type="application\/json"\s+id="serialized-server-data">\s*(\{.*?\})\s*<\/script>/s,
+  );
+  if (!blobMatch) return [];
+
+  let blob;
+  try {
+    blob = JSON.parse(blobMatch[1]);
+  } catch {
+    return [];
+  }
+
+  const pageData = blob?.data?.[0]?.data;
+  if (!pageData) return [];
+
+  // App detail pages store shelves in shelfMapping (keyed by id), not in a shelves array
+  const versionShelf = pageData.shelfMapping?.mostRecentVersion ?? null;
+  if (!versionShelf) return [];
+
+  // Full history is nested under seeAllAction.pageData — prefer it;
+  // fall back to the single mostRecentVersion item when absent.
+  const historyItems =
+    versionShelf.seeAllAction?.pageData?.shelves?.[0]?.items ??
+    versionShelf.items ??
+    [];
+
+  return historyItems
+    .filter((item) => item.primarySubtitle)
+    .map((item) => {
+      // mostRecentVersion items prefix the version with "Version " — strip it.
+      const version = item.primarySubtitle.replace(/^Version\s+/i, "").trim();
+
+      let releaseDate = null;
+      if (item.secondarySubtitle) {
+        const parsed = new Date(item.secondarySubtitle);
+        if (!isNaN(parsed.getTime())) releaseDate = parsed.toISOString();
+      }
+
+      return {
+        version,
+        releaseDate,
+        releaseNotes: item.text ?? null,
+        // Placeholder — will be populated by post-release signal analysis:
+        // keyword rank deltas, rating changes, visibility shifts measured
+        // in the ~14-day window after this version went live.
+        verdict: {
+          type: "neutral", // "positive" | "negative" | "neutral"
+          events: [], // VersionEvent[]
+        },
+      };
+    });
 }
 
 // ── Single-app page scraper ───────────────────────────────────────────────────
@@ -321,35 +455,51 @@ export async function lookupAppMetadata(appIds, country = "us", redis = null) {
  * @param {string|null} [proxyUrl=null] - Optional HTTP/HTTPS/SOCKS proxy URL
  * @returns {Promise<object|null>}
  */
-export async function scrapeAppPageMetadata(appleId, country = "us", proxyUrl = null) {
+export async function scrapeAppPageMetadata(
+  appleId,
+  country = "us",
+  proxyUrl = null,
+) {
   // Apple redirects placeholder slugs to the real URL automatically
   const url = `https://apps.apple.com/${country}/app/a/id${appleId}`;
 
-  const fetchOptions = {
-    headers: {
-      "User-Agent": USER_AGENT,
-      Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-      "Accept-Language": "en-US,en;q=0.9",
-      Cookie: `geo=${country.toUpperCase()}`,
-      "Sec-Fetch-Dest": "document",
-      "Sec-Fetch-Mode": "navigate",
-      "Sec-Fetch-Site": "none",
-    },
-    redirect: "follow",
+  const headers = {
+    "User-Agent": USER_AGENT,
+    Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    Cookie: `geo=${country.toUpperCase()}`,
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
   };
 
+  let html;
   if (proxyUrl) {
-    fetchOptions.agent = new HttpsProxyAgent(proxyUrl);
+    // Use axios + the shared singleton agent so requests actually route through
+    // the proxy. Native fetch ignores the `agent` option (undici-backed), so
+    // using fetch here bypasses the proxy and hits Apple direct — causing 429s.
+    let resp;
+    try {
+      resp = await axios.get(url, {
+        httpsAgent: getProxyAgent(),
+        headers,
+        timeout: 15000,
+        responseType: "text",
+        maxRedirects: 5,
+      });
+    } catch (err) {
+      if (err.response?.status === 404) return null;
+      throw new Error(`HTTP ${err.response?.status ?? "?"} fetching app page`);
+    }
+    html = resp.data;
+  } else {
+    const response = await fetch(url, { headers, redirect: "follow" });
+    if (!response.ok) {
+      if (response.status === 404) return null;
+      throw new Error(`HTTP ${response.status} fetching app page`);
+    }
+    html = await response.text();
   }
-
-  const response = await fetch(url, fetchOptions);
-
-  if (!response.ok) {
-    if (response.status === 404) return null;
-    throw new Error(`HTTP ${response.status} fetching app page`);
-  }
-
-  const html = await response.text();
 
   // --- JSON-LD: software-application ---
   const ldMatch =
@@ -385,6 +535,9 @@ export async function scrapeAppPageMetadata(appleId, country = "us", proxyUrl = 
   const canonicalMatch = html.match(/<link\s+rel="canonical"\s+href="([^"]+)"/);
   const appStoreUrl = canonicalMatch?.[1] ?? null;
 
+  // --- version history (serialized-server-data blob) ---
+  const versionHistory = extractVersionHistory(html);
+
   // --- rating breakdown (histogram bars) ---
   // Apple renders bars with aria-label="5 star, 90%" (percentage, singular "star")
   const ratingBreakdown = {};
@@ -402,7 +555,8 @@ export async function scrapeAppPageMetadata(appleId, country = "us", proxyUrl = 
     for (const [star, pct] of Object.entries(ratingBreakdown)) {
       ratingBreakdownFinal[star] = {
         percentage: pct,
-        count: reviewCount !== null ? Math.round((reviewCount * pct) / 100) : null,
+        count:
+          reviewCount !== null ? Math.round((reviewCount * pct) / 100) : null,
       };
     }
   }
@@ -425,7 +579,105 @@ export async function scrapeAppPageMetadata(appleId, country = "us", proxyUrl = 
     developerUrl: ld.author?.url ?? null,
     appStoreUrl,
     ratingBreakdown: ratingBreakdownFinal,
+    versionHistory,
   };
+}
+
+// ── Lightweight name+subtitle scraper (for mining) ──────────────────────────
+
+/**
+ * Scrape ONLY name + subtitle from an app page. Skips version history,
+ * rating breakdown, description, and all other heavy parsing.
+ * Designed for high-concurrency bulk scraping (mining service).
+ *
+ * @param {string} appleId
+ * @param {string} [country="us"]
+ * @param {string|null} [proxyUrl=null]
+ * @returns {Promise<{ name: string, subtitle: string|null } | null>}
+ */
+export async function scrapeAppNameSubtitle(
+  appleId,
+  country = "us",
+  proxyUrl = null,
+) {
+  const url = `https://apps.apple.com/${country}/app/a/id${appleId}`;
+  const t0 = performance.now();
+
+  const headers = {
+    "User-Agent": USER_AGENT,
+    Accept: "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    "Accept-Language": "en-US,en;q=0.9",
+    Cookie: `geo=${country.toUpperCase()}`,
+    "Sec-Fetch-Dest": "document",
+    "Sec-Fetch-Mode": "navigate",
+    "Sec-Fetch-Site": "none",
+  };
+
+  let html;
+  if (proxyUrl) {
+    let resp;
+    try {
+      resp = await axios.get(url, {
+        httpsAgent: getProxyAgent(),
+        headers,
+        timeout: 15000,
+        responseType: "text",
+        maxRedirects: 5,
+      });
+    } catch (err) {
+      const ms = Math.round(performance.now() - t0);
+      console.log(
+        `[scrape] ${appleId} (${country}): ERROR ${err.response?.status ?? "?"} — ${ms}ms`,
+      );
+      if (err.response?.status === 404) return null;
+      throw new Error(`HTTP ${err.response?.status ?? "?"} fetching app page`);
+    }
+    html = resp.data;
+    resp.data = null; // release response buffer immediately
+  } else {
+    const response = await fetch(url, { headers, redirect: "follow" });
+    if (!response.ok) {
+      const ms = Math.round(performance.now() - t0);
+      console.log(
+        `[scrape] ${appleId} (${country}): ERROR ${response.status} — ${ms}ms`,
+      );
+      if (response.status === 404) return null;
+      throw new Error(`HTTP ${response.status} fetching app page`);
+    }
+    html = await response.text();
+  }
+  const ms = Math.round(performance.now() - t0);
+  if (ms > 3000) console.log(`[scrape] SLOW ${appleId} (${country}): ${ms}ms`);
+
+  // Extract name from the software-application JSON-LD block specifically.
+  // MUST NOT use html.match(/"name":...) — the page contains multiple JSON-LD
+  // blocks and the very first "name" key belongs to the Apple website itself
+  // ("App Store"), not the individual app.
+  // IMPORTANT: regex match groups are V8 "sliced strings" that retain the entire
+  // parent HTML buffer (~300KB). We must copy them to detach from the buffer,
+  // otherwise 6000+ entries in knownMeta × 300KB = 1.8GB retained.
+  const ldMatch =
+    html.match(
+      /<script\s[^>]*id=["']?software-application["']?[^>]*type=["']application\/ld\+json["'][^>]*>([\s\S]*?)<\/script>/i,
+    ) ??
+    html.match(
+      /<script\s[^>]*type=["']application\/ld\+json["'][^>]*id=["']?software-application["']?[^>]*>([\s\S]*?)<\/script>/i,
+    );
+  const nameMatch = ldMatch?.[1]?.match(/"name"\s*:\s*"([^"]+)"/);
+  const name = nameMatch?.[1] ? (" " + nameMatch[1]).slice(1) : null;
+
+  // Extract subtitle from HTML
+  const subtitleMatch = html.match(/<h2\s+class="subtitle[^"]*">([^<]+)<\/h2>/);
+  const rawSubtitle = subtitleMatch?.[1]?.trim();
+  const subtitle = rawSubtitle
+    ? (" " + decodeHtmlEntities(rawSubtitle)).slice(1)
+    : null;
+
+  // Release HTML string immediately
+  html = null;
+
+  if (!name) return null;
+  return { name, subtitle };
 }
 
 // ── Single-app iTunes Lookup (exported) ──────────────────────────────────────
@@ -439,7 +691,11 @@ export async function scrapeAppPageMetadata(appleId, country = "us", proxyUrl = 
  * @param {string|null} [proxyUrl=null] - Optional HTTP/HTTPS/SOCKS proxy URL
  * @returns {Promise<object|null>}
  */
-export async function fetchAppMetadata(appleId, country = "us", proxyUrl = null) {
+export async function fetchAppMetadata(
+  appleId,
+  country = "us",
+  proxyUrl = null,
+) {
   const meta = await scrapeAppPageMetadata(appleId, country, proxyUrl);
   if (!meta) return null;
 
