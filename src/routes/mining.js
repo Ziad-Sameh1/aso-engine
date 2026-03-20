@@ -1,5 +1,10 @@
-import { mineApp } from "../services/miningService.js";
-import { lookupAppMetadata } from "../services/appstore.js";
+import { mineApp, generateLocalizedIntentsV2, generateCompetitorSearchTerms, createLimiter } from "../services/miningService.js";
+import { config } from "../config/index.js";
+import {
+  fetchSearchHtmlViaProxy,
+  extractSearchResults,
+  scrapeAppNameSubtitle,
+} from "../services/appstore.js";
 import { scoreMinedKeywords } from "../services/keywordSuggestionService.js";
 import {
   upsertApp,
@@ -14,6 +19,207 @@ import {
 } from "../services/db.js";
 
 export async function miningRoutes(fastify) {
+  /**
+   * POST /api/apps/:appleId/mine/v2
+   *
+   * Simplified competitor discovery across storefronts.
+   *   Phase 1 — scrape app metadata per store in parallel (done)
+   *   Phase 2 — Gemini generates 10 localized intents per store (done)
+   *   Phase 3 — search intents, count competitor appearances (done)
+   *
+   * Body:
+   *   stores  {string[]}  Two-letter country codes (default: ["us"])
+   */
+  fastify.post(
+    "/api/apps/:appleId/mine/v2",
+    {
+      schema: {
+        params: {
+          type: "object",
+          required: ["appleId"],
+          properties: {
+            appleId: { type: "string", minLength: 1 },
+          },
+        },
+        body: {
+          type: "object",
+          properties: {
+            stores: {
+              type: "array",
+              items: { type: "string", pattern: "^[a-z]{2}$" },
+              default: ["us"],
+            },
+          },
+        },
+        response: {
+          200: { type: "object", additionalProperties: true },
+        },
+      },
+    },
+    async (request, reply) => {
+      const { appleId } = request.params;
+      const { stores = ["us"] } = request.body ?? {};
+
+      const t0 = performance.now();
+
+      // Phase 1: scrape metadata across stores in parallel
+      const { scrapeAppPageMetadata } = await import("../services/appstore.js");
+      const scraped = await Promise.all(
+        stores.map(async (store) => {
+          const t0 = performance.now();
+          const meta = await scrapeAppPageMetadata(appleId, store);
+          const ms = Math.round(performance.now() - t0);
+          return { store, meta, ms };
+        })
+      );
+
+      const found = scraped.filter((r) => r.meta !== null);
+      if (found.length === 0) {
+        return reply.code(404).send({ error: "App not found on the App Store." });
+      }
+
+      // Phase 2: single Gemini call — 10 localized intents per store
+      const usEntry = found.find((r) => r.store === "us") ?? found[0];
+      const geminiT0 = performance.now();
+      const intentsArray = await generateLocalizedIntentsV2({
+        meta: usEntry.meta,
+        storeCodes: found.map((r) => r.store),
+      });
+      const geminiMs = Math.round(performance.now() - geminiT0);
+
+      const intentsMap = Object.fromEntries(
+        intentsArray.map((r) => [r.store, r.intents])
+      );
+
+      // Phase 4: search all intents per store, count competitor appearances
+      const searchT0 = performance.now();
+
+      const storeResults = await Promise.all(
+        found.map(async ({ store, meta, ms: metadataMs }) => {
+          const intents = intentsMap[store] ?? [];
+          if (intents.length === 0) {
+            return { store, found: true, name: meta.name, subtitle: meta.subtitle, intents: [], competitors: [], metadataMs };
+          }
+
+          // Search all 10 intents concurrently (concurrency 30)
+          const limit = createLimiter(30);
+          const intentResults = await Promise.all(
+            intents.map((intent) =>
+              limit(async () => {
+                try {
+                  const html = await fetchSearchHtmlViaProxy(intent, store);
+                  return extractSearchResults(html).slice(0, 50);
+                } catch {
+                  return [];
+                }
+              })
+            )
+          );
+
+          // Count appearances
+          const countMap = new Map(); // appleId → { count, name, bundleId, subtitle }
+          for (const results of intentResults) {
+            for (const r of results) {
+              const entry = countMap.get(r.id);
+              if (entry) {
+                entry.count++;
+              } else {
+                countMap.set(r.id, { count: 1, name: null, subtitle: null });
+              }
+            }
+          }
+
+          // Resolve name + subtitle for all competitors via scrapeAppNameSubtitle (via proxy)
+          const scrapeLimit = createLimiter(100);
+          const allIds = [...countMap.keys()];
+
+          const runScrape = (ids) =>
+            Promise.all(
+              ids.map((id) =>
+                scrapeLimit(async () => {
+                  try {
+                    const result = await scrapeAppNameSubtitle(id, store, config.proxyUrl);
+                    if (result) {
+                      const entry = countMap.get(id);
+                      entry.name = result.name;
+                      entry.subtitle = result.subtitle;
+                    }
+                  } catch {
+                    // non-fatal — will be caught by retry pass
+                  }
+                })
+              )
+            );
+
+          await runScrape(allIds);
+
+          // Retry pass: re-scrape any that still have no name (429 failures)
+          const failed = [...countMap.keys()].filter((id) => !countMap.get(id).name);
+          if (failed.length > 0) {
+            console.log(`[mine-v2] ${store}: retrying ${failed.length} failed scrapes`);
+            await runScrape(failed);
+          }
+
+          // Filter out the target app itself, sort by count desc
+          const competitors = [...countMap.entries()]
+            .filter(([id]) => String(id) !== String(appleId))
+            .map(([id, e]) => ({ id, name: e.name, subtitle: e.subtitle, count: e.count }))
+            .sort((a, b) => b.count - a.count);
+
+          return {
+            store,
+            found: true,
+            name: meta.name,
+            subtitle: meta.subtitle,
+            intents,
+            competitors,
+            competitorCount: competitors.length,
+            metadataMs,
+          };
+        })
+      );
+
+      // Attach not-found stores
+      for (const { store } of scraped.filter((r) => r.meta === null)) {
+        storeResults.push({ store, found: false });
+      }
+
+      const searchMs = Math.round(performance.now() - searchT0);
+
+      // Phase 5: per store (all parallel), Gemini generates search terms for every competitor
+      const phase5T0 = performance.now();
+
+      await Promise.all(
+        storeResults
+          .filter((r) => r.found && r.competitors?.length > 0)
+          .map(async (storeResult) => {
+            const eligible = storeResult.competitors.filter((c) => c.name);
+            if (eligible.length === 0) return;
+
+            const termsMap = await generateCompetitorSearchTerms(eligible);
+            for (const competitor of storeResult.competitors) {
+              competitor.searchTerms = termsMap.get(String(competitor.id)) ?? [];
+            }
+          })
+      );
+
+      const phase5Ms = Math.round(performance.now() - phase5T0);
+      const totalMs = Math.round(performance.now() - t0);
+
+      return {
+        appleId,
+        stores: storeResults,
+        timings: {
+          metadataMs: Math.max(...scraped.map((r) => r.ms)),
+          geminiMs,
+          searchMs,
+          phase5Ms,
+          totalMs,
+        },
+      };
+    }
+  );
+
   /**
    * POST /api/apps/:appleId/mine
    *

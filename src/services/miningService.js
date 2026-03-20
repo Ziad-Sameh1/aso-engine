@@ -19,7 +19,7 @@ import { config } from "../config/index.js";
 
 // ── Concurrency limiter ───────────────────────────────────────────────────────
 
-function createLimiter(concurrency) {
+export function createLimiter(concurrency) {
   let active = 0;
   const queue = [];
   function next() {
@@ -148,6 +148,127 @@ Return ONLY a valid JSON array — nothing else:
     .replace(/\n?```$/, "")
     .trim();
   return JSON.parse(json);
+}
+
+/**
+ * Like generateLocalizedIntents but generates exactly 25 intents per store
+ * with stronger localization requirements (used by mine/v2).
+ *
+ * @param {{ name: string, subtitle: string|null, description: string|null }} meta
+ * @param {string[]} storeCodes
+ * @returns {Promise<Array<{ store: string, intents: string[] }>>}
+ */
+export async function generateLocalizedIntentsV2({ meta, storeCodes }) {
+  if (!config.geminiApiKey)
+    throw new Error("GEMINI_API_KEY is not configured.");
+
+  const genAI = new GoogleGenerativeAI(config.geminiApiKey);
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+  const prompt = `You are an App Store Optimization expert. Use the following App Store metadata to deeply understand this app's purpose, core features, and target audience.
+
+App name: ${meta.name ?? ""}
+Subtitle: ${meta.subtitle ?? ""}
+Description:
+${meta.description ?? ""}
+
+For each store code below, generate exactly 25 short search phrases (1–3 words) that real users in THAT locale would type into the App Store when looking for this kind of app.
+
+Rules:
+- CATEGORY ANCHORING: First, determine the app's primary App Store category (e.g., Finance, Productivity). EVERY intent must unambiguously belong to this category. Do not use generic terms that might return Games or unrelated Utilities.
+- AVOID AMBIGUITY: Do not use words that have double meanings in the target language if the alternate meaning belongs to a different category (e.g., in Italian, avoid words for "budget/balance" that also mean "physical weight scale").
+- Ground every intent in the actual features and use cases described above — do not guess generically.
+- Start with the most direct, high-volume terms first.
+- Non-English storefronts: use the local language naturally — think like a native speaker, not a translator.
+  Examples: Arabic stores (ar, sa, ae, eg) → Arabic script. Spanish stores (es, mx, cl, co) → Spanish. Italian (it) → Italian. German (de) → German. French (fr) → French.
+- Prioritize what users search for, not how the developer describes the app.
+- Lowercase, no duplicates, no brand names.
+- Exactly 25 intents per store — no more, no less.
+
+Stores: ${storeCodes.join(", ")}
+
+Return ONLY a valid JSON array — nothing else:
+[
+  { "store": "<store_code>", "intents": ["...", "..."] }
+]`;
+
+  const result = await model.generateContent(prompt);
+  const text = result.response.text().trim();
+  const json = text
+    .replace(/^```(?:json)?\n?/, "")
+    .replace(/\n?```$/, "")
+    .trim();
+  return JSON.parse(json);
+}
+
+const SEARCH_TERMS_BATCH_SIZE = 20;
+
+/**
+ * For a list of competitors (id, name, subtitle), generate all possible search
+ * phrases a user might type to find each app. Batches into groups of 50 and
+ * runs all batches in parallel.
+ *
+ * @param {Array<{ id: string, name: string, subtitle: string|null }>} competitors
+ * @returns {Promise<Map<string, string[]>>}  id → searchTerms[]
+ */
+export async function generateCompetitorSearchTerms(competitors) {
+  if (!config.geminiApiKey)
+    throw new Error("GEMINI_API_KEY is not configured.");
+
+  const genAI = new GoogleGenerativeAI(config.geminiApiKey);
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+  // Split into batches of 50
+  const batches = [];
+  for (let i = 0; i < competitors.length; i += SEARCH_TERMS_BATCH_SIZE) {
+    batches.push(competitors.slice(i, i + SEARCH_TERMS_BATCH_SIZE));
+  }
+
+  const batchResults = await Promise.all(
+    batches.map(async (batch) => {
+      const appList = batch
+        .map((c) => `- id: ${c.id} | name: ${c.name}${c.subtitle ? ` | subtitle: ${c.subtitle}` : ""}`)
+        .join("\n");
+
+      const prompt = `You are an App Store keyword expert. For each app below, generate ALL possible search phrases (1–3 words) that a real user might type into the App Store search bar to find that specific app. Include every variation, synonym, and combination that makes sense.
+
+Apps:
+${appList}
+
+Rules:
+- Extract terms directly from the name and subtitle — every meaningful word, pair, and triplet
+- Include synonyms and close variants (e.g. "bill tracker" → also "invoice tracker", "payment tracker")
+- Lowercase, no brand names, no duplicates within an app
+- Aim for completeness — it's better to have too many than too few
+
+Return ONLY a valid JSON array — nothing else:
+[
+  { "id": "<id>", "searchTerms": ["...", "..."] }
+]`;
+
+      const result = await model.generateContent(prompt);
+      const text = result.response.text().trim();
+      const json = text
+        .replace(/^```(?:json)?\n?/, "")
+        .replace(/\n?```$/, "")
+        .trim();
+      try {
+        return JSON.parse(json);
+      } catch {
+        console.warn(`[mine-v2] search terms batch parse failed (truncated?), returning empty for ${batch.length} apps`);
+        return batch.map((c) => ({ id: c.id, searchTerms: [] }));
+      }
+    })
+  );
+
+  // Flatten all batches into a single id → terms map
+  const termsMap = new Map();
+  for (const batch of batchResults) {
+    for (const { id, searchTerms } of batch) {
+      termsMap.set(String(id), searchTerms ?? []);
+    }
+  }
+  return termsMap;
 }
 
 // ── Keyword extraction pipeline ───────────────────────────────────────────────
