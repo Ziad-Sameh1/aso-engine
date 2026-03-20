@@ -498,6 +498,73 @@ export function extractKeywords(apps, ownApp) {
     .map(([keyword, frequency]) => ({ keyword, frequency }));
 }
 
+/**
+ * Extract all bigrams and 3-grams from a list of competitor apps.
+ *
+ * Bigrams (2-word): all ordered pairs (order varies, i.e. skip-bigrams),
+ *   so "personal expense tracker" → "personal expense", "personal tracker", "expense tracker"
+ * 3-grams (3-word): contiguous only (order fixed),
+ *   so "personal expense tracker" → "personal expense tracker"
+ *
+ * Each ngram goes through the normalize → expand → split pipeline first.
+ * Returns frequency-sorted lists with counts.
+ *
+ * @param {Array<{ name: string, subtitle: string|null }>} competitors
+ * @returns {{ bigrams: { ngram: string, count: number }[], trigrams: { ngram: string, count: number }[] }}
+ */
+export function extractAllNgrams(competitors) {
+  const bigramFreq = new Map();
+  const trigramFreq = new Map();
+
+  for (const app of competitors) {
+    const texts = [normalize(app.name), normalize(app.subtitle)].filter(Boolean);
+    // Collect per-app unique ngrams to count each app once
+    const appBigrams = new Set();
+    const appTrigrams = new Set();
+
+    for (const text of texts) {
+      const expanded = expandConjunctions(text);
+      const phrases = expanded.flatMap(splitBareList);
+
+      for (const phrase of phrases) {
+        const words = phrase.split(/\s+/).filter(Boolean);
+
+        // Bigrams: all ordered pairs (skip-bigrams)
+        for (let i = 0; i < words.length; i++) {
+          for (let j = i + 1; j < words.length; j++) {
+            const bg = `${words[i]} ${words[j]}`;
+            if (filterNgram(bg)) appBigrams.add(bg);
+          }
+        }
+
+        // 3-grams: contiguous only
+        for (let i = 0; i <= words.length - 3; i++) {
+          const tg = `${words[i]} ${words[i + 1]} ${words[i + 2]}`;
+          if (filterNgram(tg)) appTrigrams.add(tg);
+        }
+      }
+    }
+
+    for (const bg of appBigrams) bigramFreq.set(bg, (bigramFreq.get(bg) ?? 0) + 1);
+    for (const tg of appTrigrams) trigramFreq.set(tg, (trigramFreq.get(tg) ?? 0) + 1);
+  }
+
+  const bigrams = [...bigramFreq.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([ngram, count]) => ({ ngram, count }));
+
+  const trigrams = [...trigramFreq.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .map(([ngram, count]) => ({ ngram, count }));
+
+  return {
+    bigrams,
+    bigramCount: bigrams.length,
+    trigrams,
+    trigramCount: trigrams.length,
+  };
+}
+
 // ── Iterative search loop per store ─────────────────────────────────────────
 
 const SEARCH_LIMIT = 200;
